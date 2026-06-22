@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 
-export default function Sidebar({ onFetchTreeUrl, onUploadZip, isLoading }) {
+export default function Sidebar({ onFetchTreeUrl, onUploadZip, isLoading, treeData }) {
     const [activeTab, setActiveTab] = useState('url'); // 'url' or 'zip'
     const [url, setUrl] = useState('');
     const fileInputRef = useRef(null);
@@ -104,9 +104,59 @@ export default function Sidebar({ onFetchTreeUrl, onUploadZip, isLoading }) {
                         )}
                     </div>
                 </div>
+                {/* Export Button */}
+                {treeData && (
+                    <div className="mt-8 border-t border-zinc-800/50 pt-6">
+                        <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-4">Export Map</h2>
+                        <p className="text-xs text-zinc-500 mb-3">Download a low-token text representation of this AST for LLM context.</p>
+                        <button
+                            onClick={() => {
+                                const generateTextMap = (node, depth = 0) => {
+                                    if (!node) return '';
+                                    let indent = '  '.repeat(depth);
+                                    let text = '';
+                                    
+                                    const type = node.attributes?.type;
+                                    if (type === 'function_group' || type === 'import_group') {
+                                        return node.children ? node.children.map(c => generateTextMap(c, depth)).join('') : '';
+                                    }
+
+                                    let prefix = '';
+                                    if (type === 'tree') prefix = '/';
+                                    else if (type === 'function') prefix = 'ƒ ';
+                                    else if (type === 'import') prefix = '↓ ';
+
+                                    text += `${indent}${prefix}${node.name}\n`;
+                                    
+                                    if (node.children) {
+                                        text += node.children.map(c => generateTextMap(c, depth + 1)).join('');
+                                    }
+                                    return text;
+                                };
+
+                                const textContent = generateTextMap(treeData);
+                                const blob = new Blob([textContent], { type: 'text/plain' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${treeData.name}-ast-map.txt`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                            }}
+                            className="w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-medium px-4 py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 text-sm shadow-lg"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download TXT Map
+                        </button>
+                    </div>
+                )}
             </div>
             
-            <div className="p-6 border-t border-zinc-800/50 text-xs text-zinc-600 font-medium">
+            <div className="p-6 border-t border-zinc-800/50 text-xs text-zinc-600 font-medium flex-shrink-0">
                 Uses @babel/parser and adm-zip for AST extraction.
             </div>
         </div>

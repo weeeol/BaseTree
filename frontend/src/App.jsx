@@ -59,6 +59,7 @@ function App() {
                 onFetchTreeUrl={handleFetchTreeUrl} 
                 onUploadZip={handleUploadZip} 
                 isLoading={isLoading} 
+                treeData={treeData}
             />
             
             <main className="flex-1 relative flex flex-col">
