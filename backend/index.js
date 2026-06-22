@@ -3,12 +3,16 @@ const cors = require('cors');
 const AdmZip = require('adm-zip');
 const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
+const multer = require('multer');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Configure multer for memory storage
+const upload = multer({ storage: multer.memoryStorage() });
 
 // --- PARSERS ---
 
@@ -135,7 +139,7 @@ function parseCodeContent(filename, codeBuffer) {
 
 // --- DATA TRANSFORMATION ---
 
-function buildGraphFromZipEntries(repoName, entries) {
+function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
     const root = {
         name: repoName,
         attributes: { type: 'tree', path: '' },
@@ -146,12 +150,18 @@ function buildGraphFromZipEntries(repoName, entries) {
 
     // First pass: create all nodes
     for (const entry of entries) {
-        // Zip entries from GitHub look like: owner-repo-sha/src/App.jsx
-        // We need to strip the root folder (owner-repo-sha)
         const parts = entry.entryName.split('/');
-        if (parts.length <= 1) continue; // Skip root folder
         
-        parts.shift(); // remove root folder
+        if (isGithubZip) {
+            // GitHub zips wrap everything in a single root folder (owner-repo-sha)
+            if (parts.length <= 1) continue; 
+            parts.shift(); 
+        } else {
+            // For raw uploads, skip the empty root entries or macOS __MACOSX garbage
+            if (parts[0] === '__MACOSX') continue;
+            if (entry.entryName.endsWith('/') && parts.length === 1 && parts[0] === '') continue;
+        }
+        
         const path = parts.join('/');
         if (!path) continue;
         
@@ -253,12 +263,33 @@ app.post('/api/tree', async (req, res) => {
         const entries = zip.getEntries();
 
         // Build Graph
-        const nestedTree = buildGraphFromZipEntries(repo, entries);
+        const nestedTree = buildGraphFromZipEntries(repo, entries, true);
 
         return res.json({ tree: nestedTree, repoName: repo, owner: owner });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+});
+
+app.post('/api/upload', upload.single('zipfile'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No zip file uploaded' });
+        }
+
+        // Parse Zip in memory
+        const zip = new AdmZip(req.file.buffer);
+        const entries = zip.getEntries();
+        const repoName = req.file.originalname.replace('.zip', '');
+
+        // Build Graph (isGithubZip = false)
+        const nestedTree = buildGraphFromZipEntries(repoName, entries, false);
+
+        return res.json({ tree: nestedTree, repoName: repoName, owner: 'Local' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: error.message || 'Internal server error while processing ZIP' });
     }
 });
 
