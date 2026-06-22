@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Tree from 'react-d3-tree';
+import DependencyOverlay from './DependencyOverlay';
 
 const Icons = {
     folder: (
@@ -24,89 +25,98 @@ const Icons = {
     )
 };
 
-const renderCustomNodeElement = ({ nodeDatum, toggleNode }) => {
-    const type = nodeDatum.attributes?.type;
-    const isFolder = type === 'tree';
-    const isFile = type === 'blob';
-    const isFunction = type === 'function';
-    const isImport = type === 'import';
-    const isGroup = type === 'function_group' || type === 'import_group';
+export default function TreeVisualization({ data, edges }) {
+    const [hoveredPath, setHoveredPath] = useState(null);
 
-    // Different sizing based on type
-    const width = isFunction || isImport ? 180 : 220;
-    const height = isFunction || isImport ? 36 : 48;
-    const x = -width / 2;
-    const y = -height / 2;
+    if (!data) return null;
 
-    let content = null;
+    const renderCustomNodeElement = ({ nodeDatum, toggleNode }) => {
+        const type = nodeDatum.attributes?.type;
+        const nodePath = nodeDatum.attributes?.path || '';
+        const isFolder = type === 'tree';
+        const isFile = type === 'blob';
+        const isFunction = type === 'function';
+        const isImport = type === 'import';
+        const isGroup = type === 'function_group' || type === 'import_group';
 
-    if (isFolder || isFile || isGroup) {
-        content = (
-            <div 
-                className={`flex items-center w-full h-full px-4 rounded-xl border shadow-lg transition-colors cursor-pointer ${
-                    isFolder ? 'bg-zinc-900 border-indigo-500/30 hover:border-indigo-400 shadow-indigo-900/20' : 
-                    isGroup ? 'bg-zinc-800 border-zinc-700 hover:border-zinc-500 text-xs' :
-                    'bg-zinc-900 border-zinc-800 hover:border-zinc-600'
-                }`}
-                onClick={toggleNode}
-            >
-                <div className="flex-shrink-0 mr-3">
-                    {isFolder ? Icons.folder : isGroup ? null : Icons.file}
+        // Different sizing based on type
+        const width = isFunction || isImport ? 180 : 220;
+        const height = isFunction || isImport ? 36 : 48;
+        const x = -width / 2;
+        const y = -height / 2;
+
+        let content = null;
+
+        if (isFolder || isFile || isGroup) {
+            content = (
+                <div 
+                    id={`node-${nodePath}`}
+                    className={`flex items-center w-full h-full px-4 rounded-xl border shadow-lg transition-all cursor-pointer ${
+                        isFolder ? 'bg-zinc-900 border-indigo-500/30 hover:border-indigo-400 shadow-indigo-900/20' : 
+                        isGroup ? 'bg-zinc-800 border-zinc-700 hover:border-zinc-500 text-xs' :
+                        'bg-zinc-900 border-zinc-800 hover:border-zinc-600'
+                    } ${hoveredPath === nodePath && !isGroup ? 'ring-2 ring-indigo-500' : ''}`}
+                    onClick={toggleNode}
+                    onMouseEnter={() => !isGroup && setHoveredPath(nodePath)}
+                    onMouseLeave={() => !isGroup && setHoveredPath(null)}
+                >
+                    <div className="flex-shrink-0 mr-3">
+                        {isFolder ? Icons.folder : isGroup ? null : Icons.file}
+                    </div>
+                    <div className="flex flex-col truncate">
+                        <span className={`font-semibold truncate ${isFolder ? 'text-indigo-100 text-sm' : isGroup ? 'text-zinc-400 uppercase tracking-widest text-[10px]' : 'text-zinc-200 text-sm'}`}>
+                            {nodeDatum.name}
+                        </span>
+                        {isFile && nodeDatum.attributes?.size > 0 && (
+                            <span className="text-zinc-500 text-[10px] font-mono mt-0.5">
+                                {(nodeDatum.attributes.size / 1024).toFixed(2)} KB
+                            </span>
+                        )}
+                    </div>
                 </div>
-                <div className="flex flex-col truncate">
-                    <span className={`font-semibold truncate ${isFolder ? 'text-indigo-100 text-sm' : isGroup ? 'text-zinc-400 uppercase tracking-widest text-[10px]' : 'text-zinc-200 text-sm'}`}>
+            );
+        } else {
+            // Pills for functions and imports
+            content = (
+                <div 
+                    id={`node-${nodePath}`}
+                    className={`flex items-center w-full h-full px-3 rounded-full border shadow-sm transition-all ${
+                        isFunction ? 'bg-purple-950/30 border-purple-900/50 text-purple-200' : 
+                        'bg-amber-950/30 border-amber-900/50 text-amber-200'
+                    }`}
+                >
+                    <div className="flex-shrink-0 mr-2">
+                        {isFunction ? Icons.function : Icons.import}
+                    </div>
+                    <span className="font-mono text-xs truncate">
                         {nodeDatum.name}
                     </span>
-                    {isFile && nodeDatum.attributes?.size > 0 && (
-                        <span className="text-zinc-500 text-[10px] font-mono mt-0.5">
-                            {(nodeDatum.attributes.size / 1024).toFixed(2)} KB
-                        </span>
-                    )}
                 </div>
-            </div>
-        );
-    } else {
-        // Pills for functions and imports
-        content = (
-            <div 
-                className={`flex items-center w-full h-full px-3 rounded-full border shadow-sm ${
-                    isFunction ? 'bg-purple-950/30 border-purple-900/50 text-purple-200' : 
-                    'bg-amber-950/30 border-amber-900/50 text-amber-200'
-                }`}
-            >
-                <div className="flex-shrink-0 mr-2">
-                    {isFunction ? Icons.function : Icons.import}
-                </div>
-                <span className="font-mono text-xs truncate">
-                    {nodeDatum.name}
-                </span>
-            </div>
-        );
-    }
+            );
+        }
 
-    return (
-        <foreignObject width={width} height={height} x={x} y={y}>
-            {content}
-        </foreignObject>
-    );
-};
-
-export default function TreeVisualization({ data }) {
-    if (!data) return null;
+        return (
+            <foreignObject width={width} height={height} x={x} y={y} className="overflow-visible">
+                {content}
+            </foreignObject>
+        );
+    };
 
     return (
         <div className="w-full h-full bg-zinc-950/80 backdrop-blur-3xl rounded-2xl border border-zinc-800/60 shadow-2xl overflow-hidden relative">
-            <div className="absolute top-6 left-6 z-10">
+            <div className="absolute top-6 left-6 z-10 pointer-events-none">
                 <h3 className="font-semibold text-zinc-100 text-lg flex items-center gap-2">
                     <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                     </svg>
                     Architecture Canvas
                 </h3>
-                <p className="text-zinc-500 text-xs mt-1">Scroll to zoom, drag to pan. Click nodes to expand.</p>
+                <p className="text-zinc-500 text-xs mt-1">Scroll to zoom. Hover over files to view dependencies.</p>
             </div>
             
-            <div style={{ width: '100%', height: '100%' }}>
+            <DependencyOverlay edges={edges} hoveredPath={hoveredPath} />
+
+            <div style={{ width: '100%', height: '100%' }} className="relative z-10">
                 <Tree 
                     data={data} 
                     orientation="horizontal"

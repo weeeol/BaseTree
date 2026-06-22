@@ -4,6 +4,7 @@ import TreeVisualization from './components/TreeVisualization';
 
 function App() {
     const [treeData, setTreeData] = useState(null);
+    const [edges, setEdges] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -21,6 +22,7 @@ function App() {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to fetch repository data');
             setTreeData(data.tree);
+            setEdges(data.edges || []);
         } catch (err) {
             console.error(err);
             setError(err.message);
@@ -45,6 +47,7 @@ function App() {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to process ZIP file');
             setTreeData(data.tree);
+            setEdges(data.edges || []);
         } catch (err) {
             console.error(err);
             setError(err.message);
@@ -77,7 +80,7 @@ function App() {
                 <div className="flex-1 w-full h-full p-6">
                     {treeData ? (
                         <div className="w-full h-full animate-in fade-in zoom-in-95 duration-500 ease-out">
-                            <TreeVisualization data={treeData} />
+                            <TreeVisualization data={treeData} edges={edges} />
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-zinc-800/50 rounded-2xl bg-zinc-950/20">
