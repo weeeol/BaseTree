@@ -25,7 +25,7 @@ const Icons = {
     )
 };
 
-export default function TreeVisualization({ data, edges }) {
+export default function TreeVisualization({ data, edges, searchQuery }) {
     const [hoveredPath, setHoveredPath] = useState(null);
 
     if (!data) return null;
@@ -39,6 +39,13 @@ export default function TreeVisualization({ data, edges }) {
         const isImport = type === 'import';
         const isGroup = type === 'function_group' || type === 'import_group';
 
+        // Search logic
+        let isMatch = true;
+        if (searchQuery && searchQuery.trim() !== '') {
+            isMatch = nodeDatum.name.toLowerCase().includes(searchQuery.toLowerCase());
+        }
+        const opacityClass = isMatch ? 'opacity-100' : 'opacity-20 grayscale';
+
         // Different sizing based on type
         const width = isFunction || isImport ? 180 : 220;
         const height = isFunction || isImport ? 36 : 48;
@@ -51,7 +58,7 @@ export default function TreeVisualization({ data, edges }) {
             content = (
                 <div 
                     id={`node-${nodePath}`}
-                    className={`flex items-center w-full h-full px-4 rounded-xl border shadow-lg transition-all cursor-pointer ${
+                    className={`flex items-center w-full h-full px-4 rounded-xl border shadow-lg transition-all duration-300 cursor-pointer ${opacityClass} ${
                         isFolder ? 'bg-zinc-900 border-indigo-500/30 hover:border-indigo-400 shadow-indigo-900/20' : 
                         isGroup ? 'bg-zinc-800 border-zinc-700 hover:border-zinc-500 text-xs' :
                         'bg-zinc-900 border-zinc-800 hover:border-zinc-600'
@@ -80,7 +87,7 @@ export default function TreeVisualization({ data, edges }) {
             content = (
                 <div 
                     id={`node-${nodePath}`}
-                    className={`flex items-center w-full h-full px-3 rounded-full border shadow-sm transition-all ${
+                    className={`flex items-center w-full h-full px-3 rounded-full border shadow-sm transition-all duration-300 ${opacityClass} ${
                         isFunction ? 'bg-purple-950/30 border-purple-900/50 text-purple-200' : 
                         'bg-amber-950/30 border-amber-900/50 text-amber-200'
                     }`}

@@ -7,10 +7,12 @@ function App() {
     const [edges, setEdges] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleFetchTreeUrl = async (url) => {
         setIsLoading(true);
         setError(null);
+        setSearchQuery('');
         
         try {
             const response = await fetch('http://localhost:3001/api/tree', {
@@ -34,6 +36,7 @@ function App() {
     const handleUploadZip = async (file) => {
         setIsLoading(true);
         setError(null);
+        setSearchQuery('');
 
         try {
             const formData = new FormData();
@@ -67,7 +70,7 @@ function App() {
             
             <main className="flex-1 relative flex flex-col">
                 {/* Header for canvas context */}
-                <div className="absolute top-0 left-0 w-full p-6 pointer-events-none z-10 flex justify-between items-start">
+                <div className="absolute top-0 left-0 w-full p-6 pointer-events-none z-20 flex justify-between items-start">
                     <div>
                         {error && (
                             <div className="inline-block px-4 py-2 bg-red-950/80 border border-red-900/50 rounded-lg text-red-400 text-sm shadow-xl backdrop-blur-md pointer-events-auto">
@@ -75,12 +78,35 @@ function App() {
                             </div>
                         )}
                     </div>
+
+                    {/* Search Bar */}
+                    {treeData && (
+                        <div className="pointer-events-auto flex items-center bg-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 rounded-xl px-4 py-2.5 shadow-2xl shadow-black/50 w-80 focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                            <svg className="w-4 h-4 text-zinc-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <input 
+                                type="text"
+                                placeholder="Search files, functions, etc..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="bg-transparent border-none text-sm text-zinc-200 focus:outline-none w-full placeholder-zinc-500"
+                            />
+                            {searchQuery && (
+                                <button onClick={() => setSearchQuery('')} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex-1 w-full h-full p-6">
+                <div className="flex-1 w-full h-full p-6 relative z-10">
                     {treeData ? (
                         <div className="w-full h-full animate-in fade-in zoom-in-95 duration-500 ease-out">
-                            <TreeVisualization data={treeData} edges={edges} />
+                            <TreeVisualization data={treeData} edges={edges} searchQuery={searchQuery} />
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-zinc-800/50 rounded-2xl bg-zinc-950/20">
