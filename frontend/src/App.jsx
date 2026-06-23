@@ -106,7 +106,50 @@ function App() {
                 <div className="flex-1 w-full h-full p-6 relative z-10">
                     {treeData ? (
                         <div className="w-full h-full animate-in fade-in zoom-in-95 duration-500 ease-out">
-                            <TreeVisualization data={treeData} edges={edges} searchQuery={searchQuery} />
+                            {(() => {
+                                const filterTree = (node, query) => {
+                                    if (!node) return null;
+                                    const isMatch = node.name.toLowerCase().includes(query.toLowerCase());
+                                    
+                                    if (node.children) {
+                                        const filteredChildren = node.children
+                                            .map(child => filterTree(child, query))
+                                            .filter(Boolean);
+                                            
+                                        if (isMatch || filteredChildren.length > 0) {
+                                            return {
+                                                ...node,
+                                                children: filteredChildren.length > 0 ? filteredChildren : undefined,
+                                                // React-d3-tree reads this property to force expand
+                                                __rd3t: { expanded: true }
+                                            };
+                                        }
+                                        return null;
+                                    }
+                                    
+                                    return isMatch ? node : null;
+                                };
+
+                                const displayData = (searchQuery && searchQuery.trim() !== '') 
+                                    ? filterTree(treeData, searchQuery) 
+                                    : treeData;
+
+                                // If search is active but no results, we should handle that gracefully
+                                // Or we just pass the filtered data
+                                return displayData ? (
+                                    <TreeVisualization 
+                                        key={searchQuery ? 'searching' : 'idle'} // Force remount to apply expansion depth
+                                        data={displayData} 
+                                        edges={edges} 
+                                        searchQuery={searchQuery} 
+                                        isSearching={!!searchQuery}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-zinc-500">
+                                        No matching files or functions found.
+                                    </div>
+                                );
+                            })()}
                         </div>
                     ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-zinc-800/50 rounded-2xl bg-zinc-950/20">

@@ -25,7 +25,7 @@ const Icons = {
     )
 };
 
-export default function TreeVisualization({ data, edges, searchQuery }) {
+export default function TreeVisualization({ data, edges, searchQuery, isSearching }) {
     const [hoveredPath, setHoveredPath] = useState(null);
 
     if (!data) return null;
@@ -134,7 +134,7 @@ export default function TreeVisualization({ data, edges, searchQuery }) {
                     separation={{ siblings: 1, nonSiblings: 1.2 }}
                     zoomable={true}
                     collapsible={true}
-                    initialDepth={1}
+                    initialDepth={isSearching ? 100 : 1}
                 />
             </div>
             
