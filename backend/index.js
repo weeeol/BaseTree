@@ -12,8 +12,11 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Configure multer for memory storage
-const upload = multer({ storage: multer.memoryStorage() });
+// Configure multer for memory storage with a 50MB file size limit to prevent memory exhaustion DoS
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
 
 // --- PARSERS ---
 
@@ -253,10 +256,26 @@ function parseCodeContent(filename, codeBuffer) {
 
 // --- DATA TRANSFORMATION ---
 
-function resolveImportPath(currentFilePath, importString) {
+function resolveImportPath(currentFilePath, importString, pathMap) {
   if (!importString.startsWith(".")) return null;
   const dir = path.posix.dirname(currentFilePath);
-  return path.posix.join(dir, importString);
+  const targetPath = path.posix.join(dir, importString);
+
+  // Check exact match
+  if (pathMap[targetPath]) return targetPath;
+
+  // Check extensions
+  const exts = [".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".go", ".c", ".cpp", ".cs", ".rs", ".php", ".rb"];
+  for (const ext of exts) {
+    if (pathMap[targetPath + ext]) return targetPath + ext;
+  }
+
+  // Check index files
+  for (const ext of exts) {
+    if (pathMap[targetPath + "/index" + ext]) return targetPath + "/index" + ext;
+  }
+
+  return targetPath; // Fallback
 }
 
 function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
@@ -268,6 +287,7 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
 
   const pathMap = {};
   const edges = [];
+  let hasExperimentalLanguages = false;
 
   // First pass: create all nodes
   for (const entry of entries) {
@@ -288,118 +308,49 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
         continue;
     }
 
-    const path = parts.join("/");
-    if (!path) continue;
+    const filePath = parts.join("/");
+    if (!filePath) continue;
 
     const name = parts[parts.length - 1] || parts[parts.length - 2]; // handle trailing slashes
     const isFolder = entry.isDirectory;
 
     const node = {
       name: isFolder ? name : parts[parts.length - 1],
-      attributes: { type: isFolder ? "tree" : "blob", path: path },
+      attributes: { type: isFolder ? "tree" : "blob", path: filePath },
       children: [],
     };
 
     // Parse file contents if it's a file
     if (!isFolder && entry.getData) {
       const ext = node.name.split(".").pop().toLowerCase();
-      const code = entry.getData().toString("utf8");
-
-      if (["js", "jsx", "ts", "tsx"].includes(ext)) {
-        const astData = parseJS(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
-      } else if (ext === "py") {
-        const astData = parsePython(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
-      } else if (ext === "java") {
-        const astData = parseJava(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
-      } else if (ext === "go") {
-        const astData = parseGo(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
-      } else if (["c", "cpp", "h", "hpp"].includes(ext)) {
-        const astData = parseCpp(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
-      } else if (ext === "cs") {
-        const astData = parseCSharp(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
-      } else if (ext === "rs") {
-        const astData = parseRust(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
-      } else if (ext === "php") {
-        const astData = parsePhp(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
-      } else if (ext === "rb") {
-        const astData = parseRuby(code);
-        node.attributes.functions = astData.functions;
-        node.attributes.imports = astData.imports;
-        for (const imp of astData.imports) {
-          const target = resolveImportPath(path, imp);
-          if (target) edges.push({ source: path, target });
-        }
+      
+      if (!["js", "jsx", "ts", "tsx"].includes(ext) && ["py", "java", "go", "c", "cpp", "h", "hpp", "cs", "rs", "php", "rb"].includes(ext)) {
+         hasExperimentalLanguages = true;
       }
 
-      const { imports, functions } = parseCodeContent(
-        node.name,
-        entry.getData(),
-      );
+      const astData = parseCodeContent(node.name, entry.getData());
+      node.attributes.functions = astData.functions;
+      node.attributes.rawImports = astData.imports;
 
       // Add AST metadata as child nodes
-      if (imports.length > 0) {
+      const nodeImports = node.attributes.rawImports || [];
+      const nodeFunctions = node.attributes.functions || [];
+
+      if (nodeImports.length > 0) {
         node.children.push({
           name: "Imports",
           attributes: { type: "import_group" },
-          children: imports.map((imp) => ({
+          children: nodeImports.map((imp) => ({
             name: imp,
             attributes: { type: "import" },
           })),
         });
       }
-      if (functions.length > 0) {
+      if (nodeFunctions.length > 0) {
         node.children.push({
           name: "Functions",
           attributes: { type: "function_group" },
-          children: functions.map((fn) => ({
+          children: nodeFunctions.map((fn) => ({
             name: fn,
             attributes: { type: "function" },
           })),
@@ -409,11 +360,11 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
     }
 
     // Standardize path without trailing slash for mapping
-    const cleanPath = path.replace(/\/$/, "");
+    const cleanPath = filePath.replace(/\/$/, "");
     pathMap[cleanPath] = node;
   }
 
-  // Second pass: Link children to parents
+  // Second pass: Link children to parents and resolve edges
   for (const path in pathMap) {
     const node = pathMap[path];
     const parts = path.split("/");
@@ -429,6 +380,18 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
         root.children.push(node);
       }
     }
+
+    // Resolve edges using the fully populated pathMap
+    if (node.attributes.rawImports) {
+      for (const imp of node.attributes.rawImports) {
+        const target = resolveImportPath(path, imp, pathMap);
+        if (target && pathMap[target]) {
+           edges.push({ source: path, target });
+        }
+      }
+      node.attributes.imports = node.attributes.rawImports;
+      delete node.attributes.rawImports;
+    }
   }
 
   // Cleanup empty children
@@ -441,7 +404,7 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
   }
   cleanEmptyChildren(root);
 
-  return { tree: root, edges };
+  return { tree: root, edges, hasExperimentalLanguages };
 }
 
 // --- API ROUTES ---
@@ -450,11 +413,12 @@ app.post("/api/tree", async (req, res) => {
   try {
     const { url } = req.body;
 
-    const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    // Strict regex to extract owner and repo, preventing SSRF bypass via malformed URLs
+    const match = url.match(/^https?:\/\/github\.com\/([a-zA-Z0-9_-]+)\/([a-zA-Z0-9_.-]+?)(?:\.git|\/|$)/);
     if (!match) return res.status(400).json({ error: "Invalid GitHub URL" });
 
     const owner = match[1];
-    const repo = match[2].replace(/\.git$/, "").split("/")[0];
+    const repo = match[2];
 
     // Fetch repo info
     const repoUrl = `https://api.github.com/repos/${owner}/${repo}`;
@@ -466,7 +430,13 @@ app.post("/api/tree", async (req, res) => {
     // Fetch Zipball
     const zipUrl = `https://api.github.com/repos/${owner}/${repo}/zipball/${defaultBranch}`;
     const zipRes = await fetch(zipUrl);
-    if (!zipRes.ok) throw new Error("Failed to download repository contents");
+    
+    if (!zipRes.ok) {
+      if (zipRes.status === 403 || zipRes.status === 429) {
+         throw new Error("GitHub API rate limit exceeded. Please try again later.");
+      }
+      throw new Error(`Failed to download repository contents (Status: ${zipRes.status})`);
+    }
 
     // Parse Zip in memory
     const buffer = await zipRes.arrayBuffer();
@@ -479,6 +449,7 @@ app.post("/api/tree", async (req, res) => {
     return res.json({
       tree: graphData.tree,
       edges: graphData.edges,
+      hasExperimentalLanguages: graphData.hasExperimentalLanguages,
       repoName: repo,
       owner: owner,
     });
@@ -507,6 +478,7 @@ app.post("/api/upload", upload.single("zipfile"), async (req, res) => {
     return res.json({
       tree: graphData.tree,
       edges: graphData.edges,
+      hasExperimentalLanguages: graphData.hasExperimentalLanguages,
       repoName: repoName,
       owner: "Local",
     });

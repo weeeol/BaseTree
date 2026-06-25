@@ -111,7 +111,7 @@ export default function TreeVisualization({ data, edges, searchQuery, isSearchin
 
     return (
         <div className="w-full h-full bg-zinc-950/80 backdrop-blur-3xl rounded-2xl border border-zinc-800/60 shadow-2xl overflow-hidden relative">
-            <div className="absolute top-6 left-6 z-10 pointer-events-none">
+            <div className="absolute top-6 left-6 z-30 pointer-events-none">
                 <h3 className="font-semibold text-zinc-100 text-lg flex items-center gap-2">
                     <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
@@ -137,14 +137,6 @@ export default function TreeVisualization({ data, edges, searchQuery, isSearchin
                     initialDepth={isSearching ? 100 : 1}
                 />
             </div>
-            
-            <style jsx>{`
-                .rd3t-link {
-                    stroke: #3f3f46 !important; /* zinc-700 */
-                    stroke-width: 1.5px !important;
-                    fill: none !important;
-                }
-            `}</style>
         </div>
     );
 }

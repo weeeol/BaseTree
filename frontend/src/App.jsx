@@ -8,6 +8,7 @@ function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [hasExperimentalLanguages, setHasExperimentalLanguages] = useState(false);
 
     const handleFetchTreeUrl = async (url) => {
         setIsLoading(true);
@@ -25,6 +26,7 @@ function App() {
             if (!response.ok) throw new Error(data.error || 'Failed to fetch repository data');
             setTreeData(data.tree);
             setEdges(data.edges || []);
+            setHasExperimentalLanguages(data.hasExperimentalLanguages || false);
         } catch (err) {
             console.error(err);
             setError(err.message);
@@ -51,6 +53,7 @@ function App() {
             if (!response.ok) throw new Error(data.error || 'Failed to process ZIP file');
             setTreeData(data.tree);
             setEdges(data.edges || []);
+            setHasExperimentalLanguages(data.hasExperimentalLanguages || false);
         } catch (err) {
             console.error(err);
             setError(err.message);
@@ -71,7 +74,7 @@ function App() {
             <main className="flex-1 relative flex flex-col">
                 {/* Header for canvas context */}
                 <div className="absolute top-0 left-0 w-full p-6 pointer-events-none z-20 flex justify-between items-start">
-                    <div>
+                    <div className="flex flex-col gap-2">
                         {error && (
                             <div className="inline-block px-4 py-2 bg-red-950/80 border border-red-900/50 rounded-lg text-red-400 text-sm shadow-xl backdrop-blur-md pointer-events-auto">
                                 [Error] {error}
@@ -99,6 +102,14 @@ function App() {
                                     </svg>
                                 </button>
                             )}
+                        </div>
+                    )}
+                </div>
+
+                <div className="absolute bottom-6 right-6 pointer-events-none z-20 flex flex-col gap-2 items-end">
+                    {hasExperimentalLanguages && !error && (
+                        <div className="inline-block px-4 py-2 bg-amber-950/80 border border-amber-900/50 rounded-lg text-amber-400 text-sm shadow-xl backdrop-blur-md pointer-events-auto max-w-md">
+                            <span className="font-semibold">⚠️ Experimental Parsing:</span> Non-JS/TS languages detected. Their AST extraction is regex-based and may be inaccurate.
                         </div>
                     )}
                 </div>

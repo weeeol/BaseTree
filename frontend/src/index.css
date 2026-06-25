@@ -8,3 +8,10 @@ body {
   margin: 0;
   font-family: var(--font-sans);
 }
+
+/* react-d3-tree link styles */
+.rd3t-link {
+  stroke: #3f3f46 !important; /* zinc-700 */
+  stroke-width: 1.5px !important;
+  fill: none !important;
+}
