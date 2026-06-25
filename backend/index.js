@@ -129,6 +129,111 @@ function parseGo(code) {
   return { imports: [...new Set(imports)], functions: [...new Set(functions)] };
 }
 
+function parseCpp(code) {
+  const imports = [];
+  const functions = [];
+
+  const lines = code.split("\n");
+  for (const line of lines) {
+    const tline = line.trim();
+    const importMatch = tline.match(/^#include\s+["<]([^">]+)[">]/);
+    if (importMatch) imports.push(importMatch[1]);
+  }
+
+  // Simple C/C++ function matcher (returnType name(args))
+  const funcRegex =
+    /^[a-zA-Z_][a-zA-Z0-9_<>:*\s]+\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/gm;
+  let match;
+  while ((match = funcRegex.exec(code)) !== null) {
+    if (
+      !["if", "for", "while", "switch", "catch", "return"].includes(match[1])
+    ) {
+      functions.push(match[1]);
+    }
+  }
+
+  return { imports: [...new Set(imports)], functions: [...new Set(functions)] };
+}
+
+function parseCSharp(code) {
+  const imports = [];
+  const functions = [];
+
+  const importRegex = /^using\s+([\w.]+);/gm;
+  let match;
+  while ((match = importRegex.exec(code)) !== null) {
+    imports.push(match[1]);
+  }
+
+  const funcRegex =
+    /(?:public|private|protected|internal)\s+(?:static\s+|virtual\s+|override\s+|async\s+)?(?:[\w<>[\]]+\s+)+(\w+)\s*\(/gm;
+  while ((match = funcRegex.exec(code)) !== null) {
+    functions.push(match[1]);
+  }
+
+  return { imports: [...new Set(imports)], functions: [...new Set(functions)] };
+}
+
+function parseRust(code) {
+  const imports = [];
+  const functions = [];
+
+  const importRegex = /^(?:pub\s+)?(?:use|mod)\s+([^;]+);/gm;
+  let match;
+  while ((match = importRegex.exec(code)) !== null) {
+    imports.push(match[1]);
+  }
+
+  const funcRegex = /(?:pub\s+)?fn\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/gm;
+  while ((match = funcRegex.exec(code)) !== null) {
+    functions.push(match[1]);
+  }
+
+  return { imports: [...new Set(imports)], functions: [...new Set(functions)] };
+}
+
+function parsePhp(code) {
+  const imports = [];
+  const functions = [];
+
+  const importRegex =
+    /^(?:require|include|require_once|include_once)\s*\(?['"]([^'"]+)['"]\)?;/gm;
+  let match;
+  while ((match = importRegex.exec(code)) !== null) {
+    imports.push(match[1]);
+  }
+  const useRegex = /^use\s+([^;]+);/gm;
+  while ((match = useRegex.exec(code)) !== null) {
+    imports.push(match[1]);
+  }
+
+  const funcRegex =
+    /(?:public|private|protected\s+)?(?:static\s+)?function\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/gm;
+  while ((match = funcRegex.exec(code)) !== null) {
+    functions.push(match[1]);
+  }
+
+  return { imports: [...new Set(imports)], functions: [...new Set(functions)] };
+}
+
+function parseRuby(code) {
+  const imports = [];
+  const functions = [];
+
+  const importRegex = /^(?:require|require_relative|load)\s+['"]([^'"]+)['"]/gm;
+  let match;
+  while ((match = importRegex.exec(code)) !== null) {
+    imports.push(match[1]);
+  }
+
+  const funcRegex = /^def\s+([a-zA-Z_][a-zA-Z0-9_=!?]*)/gm;
+  while ((match = funcRegex.exec(code)) !== null) {
+    functions.push(match[1]);
+  }
+
+  return { imports: [...new Set(imports)], functions: [...new Set(functions)] };
+}
+
 function parseCodeContent(filename, codeBuffer) {
   const code = codeBuffer.toString("utf8");
   const ext = filename.split(".").pop().toLowerCase();
@@ -137,6 +242,11 @@ function parseCodeContent(filename, codeBuffer) {
   if (ext === "py") return parsePython(code);
   if (ext === "java") return parseJava(code);
   if (ext === "go") return parseGo(code);
+  if (["c", "cpp", "h", "hpp"].includes(ext)) return parseCpp(code);
+  if (ext === "cs") return parseCSharp(code);
+  if (ext === "rs") return parseRust(code);
+  if (ext === "php") return parsePhp(code);
+  if (ext === "rb") return parseRuby(code);
 
   return { imports: [], functions: [] };
 }
@@ -192,10 +302,10 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
 
     // Parse file contents if it's a file
     if (!isFolder && entry.getData) {
-      const ext = "." + node.name.split(".").pop().toLowerCase();
+      const ext = node.name.split(".").pop().toLowerCase();
       const code = entry.getData().toString("utf8");
 
-      if (ext === ".js" || ext === ".jsx" || ext === ".ts" || ext === ".tsx") {
+      if (["js", "jsx", "ts", "tsx"].includes(ext)) {
         const astData = parseJS(code);
         node.attributes.functions = astData.functions;
         node.attributes.imports = astData.imports;
@@ -203,7 +313,7 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
           const target = resolveImportPath(path, imp);
           if (target) edges.push({ source: path, target });
         }
-      } else if (ext === ".py") {
+      } else if (ext === "py") {
         const astData = parsePython(code);
         node.attributes.functions = astData.functions;
         node.attributes.imports = astData.imports;
@@ -211,7 +321,7 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
           const target = resolveImportPath(path, imp);
           if (target) edges.push({ source: path, target });
         }
-      } else if (ext === ".java") {
+      } else if (ext === "java") {
         const astData = parseJava(code);
         node.attributes.functions = astData.functions;
         node.attributes.imports = astData.imports;
@@ -219,8 +329,48 @@ function buildGraphFromZipEntries(repoName, entries, isGithubZip = false) {
           const target = resolveImportPath(path, imp);
           if (target) edges.push({ source: path, target });
         }
-      } else if (ext === ".go") {
+      } else if (ext === "go") {
         const astData = parseGo(code);
+        node.attributes.functions = astData.functions;
+        node.attributes.imports = astData.imports;
+        for (const imp of astData.imports) {
+          const target = resolveImportPath(path, imp);
+          if (target) edges.push({ source: path, target });
+        }
+      } else if (["c", "cpp", "h", "hpp"].includes(ext)) {
+        const astData = parseCpp(code);
+        node.attributes.functions = astData.functions;
+        node.attributes.imports = astData.imports;
+        for (const imp of astData.imports) {
+          const target = resolveImportPath(path, imp);
+          if (target) edges.push({ source: path, target });
+        }
+      } else if (ext === "cs") {
+        const astData = parseCSharp(code);
+        node.attributes.functions = astData.functions;
+        node.attributes.imports = astData.imports;
+        for (const imp of astData.imports) {
+          const target = resolveImportPath(path, imp);
+          if (target) edges.push({ source: path, target });
+        }
+      } else if (ext === "rs") {
+        const astData = parseRust(code);
+        node.attributes.functions = astData.functions;
+        node.attributes.imports = astData.imports;
+        for (const imp of astData.imports) {
+          const target = resolveImportPath(path, imp);
+          if (target) edges.push({ source: path, target });
+        }
+      } else if (ext === "php") {
+        const astData = parsePhp(code);
+        node.attributes.functions = astData.functions;
+        node.attributes.imports = astData.imports;
+        for (const imp of astData.imports) {
+          const target = resolveImportPath(path, imp);
+          if (target) edges.push({ source: path, target });
+        }
+      } else if (ext === "rb") {
+        const astData = parseRuby(code);
         node.attributes.functions = astData.functions;
         node.attributes.imports = astData.imports;
         for (const imp of astData.imports) {
@@ -362,11 +512,9 @@ app.post("/api/upload", upload.single("zipfile"), async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    return res
-      .status(500)
-      .json({
-        error: error.message || "Internal server error while processing ZIP",
-      });
+    return res.status(500).json({
+      error: error.message || "Internal server error while processing ZIP",
+    });
   }
 });
 
