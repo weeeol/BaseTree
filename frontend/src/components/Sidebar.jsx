@@ -30,46 +30,46 @@ export default function Sidebar() {
     };
 
     return (
-        <div className="w-80 h-full bg-zinc-950/90 backdrop-blur-2xl border-r border-zinc-800/60 flex flex-col flex-shrink-0 z-20 shadow-2xl relative">
-            <div className="p-6 border-b border-zinc-800/50">
+        <div className="w-80 h-full bg-[#f4f4f0] border-r-4 border-black flex flex-col flex-shrink-0 z-20 brutalist-shadow relative">
+            <div className="p-6 border-b-4 border-black bg-cyan-300">
                 <div className="flex items-center gap-3 mb-1">
-                    <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-400 rounded-xl border border-indigo-500/20 shadow-inner">
-                        <TerminalSquare className="w-6 h-6" />
+                    <div className="p-2 bg-white text-black border-3 border-black brutalist-shadow-sm">
+                        <TerminalSquare className="w-8 h-8" strokeWidth={2.5} />
                     </div>
                     <div>
-                        <h1 className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-zinc-100 to-zinc-400">
+                        <h1 className="text-3xl font-black tracking-tighter text-black uppercase">
                             BaseTree
                         </h1>
-                        <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest mt-0.5">Architecture Visualizer</p>
+                        <p className="text-[10px] text-black font-extrabold uppercase tracking-widest mt-1 bg-yellow-300 inline-block px-1 border border-black">Architecture Visualizer</p>
                     </div>
                 </div>
             </div>
 
             <div className="p-6 flex-1 flex flex-col gap-6 overflow-y-auto scrollbar-none">
                 <div>
-                    <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <GitBranch className="w-4 h-4 text-zinc-500" />
+                    <h2 className="text-sm font-black text-black uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <GitBranch className="w-5 h-5 text-black" strokeWidth={3} />
                         Import Source
                     </h2>
                     
                     {/* Animated Tabs */}
-                    <div className="flex p-1 bg-zinc-900/50 rounded-xl mb-6 border border-zinc-800/80 relative">
+                    <div className="flex p-1 bg-white mb-6 border-3 border-black brutalist-shadow-sm relative">
                         {['url', 'zip'].map((tab) => (
                             <button 
                                 key={tab}
-                                className={`relative flex-1 py-2 text-xs font-medium rounded-lg transition-colors z-10 flex items-center justify-center gap-2 ${activeTab === tab ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                className={`relative flex-1 py-2 text-xs font-black rounded-none transition-colors z-10 flex items-center justify-center gap-2 uppercase tracking-widest ${activeTab === tab ? 'text-black' : 'text-gray-400 hover:text-black'}`}
                                 onClick={() => setActiveTab(tab)}
                             >
                                 {activeTab === tab && (
                                     <motion.div 
                                         layoutId="tab-indicator"
-                                        className="absolute inset-0 bg-zinc-800 border border-zinc-700/50 rounded-lg shadow-sm"
+                                        className="absolute inset-0 bg-yellow-300 border-2 border-black"
                                         initial={false}
                                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                                     />
                                 )}
                                 <span className="relative z-10 flex items-center gap-2">
-                                    {tab === 'url' ? <Link className="w-3.5 h-3.5" /> : <FolderArchive className="w-3.5 h-3.5" />}
+                                    {tab === 'url' ? <Link className="w-4 h-4" strokeWidth={3} /> : <FolderArchive className="w-4 h-4" strokeWidth={3} />}
                                     {tab === 'url' ? 'GitHub' : 'Local ZIP'}
                                 </span>
                             </button>
@@ -89,29 +89,29 @@ export default function Sidebar() {
                                     onSubmit={handleUrlSubmit} 
                                     className="flex flex-col gap-3 absolute inset-0"
                                 >
-                                    <label className="text-xs font-medium text-zinc-400">Repository URL</label>
+                                    <label className="text-sm font-black text-black uppercase tracking-widest">Repository URL</label>
                                     <div className="relative">
                                         <input
                                             type="url"
                                             value={url}
                                             onChange={(e) => setUrl(e.target.value)}
                                             placeholder="https://github.com/owner/repo"
-                                            className="w-full bg-zinc-900/50 border border-zinc-700/80 text-zinc-200 text-sm pl-9 pr-3 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder-zinc-600 shadow-inner"
+                                            className="w-full bg-white border-3 border-black text-black text-sm pl-10 pr-3 py-3 focus:outline-none focus:ring-0 focus:bg-yellow-100 transition-all placeholder-gray-400 font-bold brutalist-shadow-sm"
                                             required
                                         />
-                                        <Link className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                                        <Link className="w-5 h-5 text-black absolute left-3 top-1/2 -translate-y-1/2" strokeWidth={2.5} />
                                     </div>
                                     <button
                                         type="submit"
                                         disabled={isLoading}
-                                        className="mt-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm shadow-lg shadow-indigo-900/20"
+                                        className="mt-4 w-full bg-cyan-300 hover:bg-cyan-200 text-black font-black uppercase tracking-widest px-4 py-3 border-3 border-black brutalist-shadow hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 text-sm"
                                     >
                                         {isLoading ? (
                                             <>
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                Parsing AST...
+                                                <Loader2 className="w-5 h-5 animate-spin" strokeWidth={3} />
+                                                Parsing...
                                             </>
-                                        ) : 'Visualize Repository'}
+                                        ) : 'Visualize Repo'}
                                     </button>
                                 </motion.form>
                             ) : (
@@ -123,26 +123,25 @@ export default function Sidebar() {
                                     transition={{ duration: 0.2 }}
                                     className="flex flex-col gap-3 absolute inset-0"
                                 >
-                                    <label className="text-xs font-medium text-zinc-400">Project Archive</label>
+                                    <label className="text-sm font-black text-black uppercase tracking-widest">Project Archive</label>
                                     <button
                                         type="button"
                                         onClick={() => fileInputRef.current?.click()}
                                         disabled={isLoading}
-                                        className="w-full h-32 border-2 border-dashed border-zinc-700/80 hover:border-indigo-500/50 bg-zinc-900/30 rounded-xl flex flex-col items-center justify-center gap-3 transition-all group disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
+                                        className="w-full h-32 mt-1 border-4 border-dashed border-black hover:bg-yellow-300 bg-white flex flex-col items-center justify-center gap-3 transition-all group disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden"
                                     >
                                         {isLoading ? (
                                             <div className="flex flex-col items-center justify-center gap-3">
-                                                <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-                                                <span className="text-xs font-medium text-indigo-300">Extracting & Parsing...</span>
+                                                <Loader2 className="w-8 h-8 text-black animate-spin" strokeWidth={3} />
+                                                <span className="text-sm font-black text-black uppercase tracking-widest">Extracting...</span>
                                             </div>
                                         ) : (
                                             <>
-                                                <div className="p-3 bg-zinc-800/50 rounded-full group-hover:scale-110 group-hover:bg-indigo-500/10 transition-all duration-300">
-                                                    <UploadCloud className="w-6 h-6 text-zinc-400 group-hover:text-indigo-400 transition-colors" />
+                                                <div className="p-3 bg-white border-3 border-black brutalist-shadow-sm group-hover:scale-110 transition-all duration-300">
+                                                    <UploadCloud className="w-8 h-8 text-black" strokeWidth={2.5} />
                                                 </div>
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-sm font-medium text-zinc-300 group-hover:text-indigo-200 transition-colors">Select .zip File</span>
-                                                    <span className="text-[10px] text-zinc-500 mt-1">Max 50MB limit</span>
+                                                    <span className="text-sm font-black text-black uppercase tracking-widest">Select .zip File</span>
                                                 </div>
                                             </>
                                         )}
@@ -168,11 +167,11 @@ export default function Sidebar() {
                             animate={{ opacity: 1, y: 0 }}
                             className="mt-8 border-t border-zinc-800/50 pt-6"
                         >
-                            <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                <Download className="w-4 h-4 text-zinc-500" />
+                            <h2 className="text-sm font-black text-black uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <Download className="w-5 h-5 text-black" strokeWidth={2.5} />
                                 Export Map
                             </h2>
-                            <p className="text-xs text-zinc-500 mb-4 leading-relaxed">Download a text representation of the graph, optimized for large LLM context windows.</p>
+                            <p className="text-xs font-bold text-gray-700 mb-6 leading-relaxed">Download a markdown representation of the graph, optimized for large LLM context windows.</p>
                             <button
                                 onClick={() => {
                                     const generateTextMap = (node, depth = 0) => {
@@ -185,12 +184,10 @@ export default function Sidebar() {
                                             return node.children ? node.children.map(c => generateTextMap(c, depth)).join('') : '';
                                         }
 
-                                        let prefix = '';
-                                        if (type === 'tree') prefix = '/';
-                                        else if (type === 'function') prefix = 'ƒ ';
-                                        else if (type === 'import') prefix = '↓ ';
-
-                                        text += `${indent}${prefix}${node.name}\n`;
+                                        let suffix = '';
+                                        if (type === 'tree') suffix = '/';
+                                        
+                                        text += `${indent}- ${node.name}${suffix}\n`;
                                         
                                         if (node.children) {
                                             text += node.children.map(c => generateTextMap(c, depth + 1)).join('');
@@ -199,7 +196,7 @@ export default function Sidebar() {
                                     };
 
                                     const textContent = generateTextMap(treeData);
-                                    const blob = new Blob([textContent], { type: 'text/plain' });
+                                    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
                                     const url = URL.createObjectURL(blob);
                                     const a = document.createElement('a');
                                     a.href = url;
@@ -209,22 +206,22 @@ export default function Sidebar() {
                                     document.body.removeChild(a);
                                     URL.revokeObjectURL(url);
                                 }}
-                                className="w-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700/50 hover:border-zinc-500 font-medium px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm shadow-lg"
+                                className="w-full bg-purple-400 hover:bg-purple-300 text-black font-black uppercase tracking-widest px-4 py-3 border-3 border-black brutalist-shadow hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center justify-center gap-3 text-sm"
                             >
-                                <Download className="w-4 h-4" />
-                                Download TXT Map
+                                <Download className="w-5 h-5" strokeWidth={3} />
+                                Download Markdown List
                             </button>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
             
-            <div className="p-4 border-t border-zinc-800/50 bg-zinc-950/50">
-                <div className="flex items-center justify-between text-[10px] text-zinc-600 font-medium">
+            <div className="p-4 border-t-4 border-black bg-white">
+                <div className="flex items-center justify-between text-xs text-black font-bold uppercase tracking-wider">
                     <span>Powered by @babel/parser</span>
-                    <span className="flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Engine Ready
+                    <span className="flex items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-black bg-emerald-400" />
+                        Ready
                     </span>
                 </div>
             </div>

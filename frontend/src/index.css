@@ -7,26 +7,40 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
+  background-color: #fafafa;
+  color: #000;
 }
 
-/* React Flow Dark Mode Overrides */
+/* Brutalist Utilities */
+.brutalist-shadow {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.brutalist-shadow-sm {
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.brutalist-border {
+  border: 3px solid #000;
+}
+
+/* React Flow Brutalist Overrides */
 .react-flow__controls-button {
-  background-color: #18181b !important; /* zinc-900 */
-  border-bottom: 1px solid #27272a !important; /* zinc-800 */
-  color: #a1a1aa !important; /* zinc-400 */
-  fill: #a1a1aa !important; /* zinc-400 */
-  transition: all 0.2s;
+  background-color: #fff !important;
+  border-bottom: 2px solid #000 !important;
+  border-right: 2px solid #000 !important;
+  color: #000 !important;
+  fill: #000 !important;
+  border-radius: 0 !important;
+}
+
+.react-flow__controls {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1) !important;
+  border: 3px solid #000 !important;
+  border-radius: 0 !important;
+  overflow: hidden;
 }
 
 .react-flow__controls-button:hover {
-  background-color: #27272a !important; /* zinc-800 */
-  color: #f4f4f5 !important; /* zinc-100 */
-  fill: #f4f4f5 !important; /* zinc-100 */
-}
-
-.react-flow__minimap {
-  background-color: #09090b !important; /* zinc-950 */
-  border: 1px solid #27272a !important; /* zinc-800 */
-  border-radius: 0.5rem;
-  overflow: hidden;
+  background-color: #fef08a !important; /* yellow-200 */
 }

@@ -8,7 +8,7 @@ export const getLayoutedElements = (nodes, edges, direction = 'LR') => {
   const nodeHeight = 60;
 
   // Tighter vertical spacing between siblings (nodesep) and wider horizontal spacing between folders (ranksep)
-  dagreGraph.setGraph({ rankdir: direction, ranksep: 200, nodesep: 15 });
+  dagreGraph.setGraph({ rankdir: direction, ranksep: 400, nodesep: 30 });
 
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -85,7 +85,7 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
         source: parentId,
         target: id,
         type: 'smoothstep',
-        style: { stroke: '#52525b', strokeWidth: 1.5 } // zinc-600
+        style: { stroke: '#000', strokeWidth: 3 } // Brutalist edge
       });
     }
 
@@ -103,7 +103,7 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
       source: edge.source,
       target: edge.target,
       type: 'bezier',
-      style: { stroke: '#f59e0b', strokeWidth: 2, strokeDasharray: '5,5' }, // amber-500
+      style: { stroke: '#000', strokeWidth: 3, strokeDasharray: '6,6' }, // Brutalist dependency edge
       data: { type: 'dependency' }
     });
   });
