@@ -165,7 +165,7 @@ export default function Sidebar() {
                         <motion.div 
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mt-8 border-t border-zinc-800/50 pt-6"
+                            className="mt-8 border-t-4 border-black pt-6"
                         >
                             <h2 className="text-sm font-black text-black uppercase tracking-widest mb-3 flex items-center gap-2">
                                 <Download className="w-5 h-5 text-black" strokeWidth={2.5} />

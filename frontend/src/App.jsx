@@ -9,14 +9,9 @@ import useStore from './store/useStore';
 function App() {
     const { 
         treeData, 
-        edges, 
         isLoading, 
         error, 
-        searchQuery, 
         hasExperimentalLanguages,
-        setSearchQuery,
-        fetchTreeUrl,
-        uploadZip,
         clearError
     } = useStore();
 

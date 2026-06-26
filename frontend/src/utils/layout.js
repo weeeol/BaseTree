@@ -4,8 +4,8 @@ export const getLayoutedElements = (nodes, edges, direction = 'LR') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  const nodeWidth = 240;
-  const nodeHeight = 60;
+  const nodeWidth = 280;
+  const nodeHeight = 80;
 
   // Tighter vertical spacing between siblings (nodesep) and wider horizontal spacing between folders (ranksep)
   dagreGraph.setGraph({ rankdir: direction, ranksep: 400, nodesep: 30 });

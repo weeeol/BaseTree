@@ -41,8 +41,8 @@ export default function FlowVisualization() {
           maxZoom={2}
           proOptions={{ hideAttribution: true }}
         >
-          <Background color="#3f3f46" gap={16} />
-          <Controls className="bg-zinc-900 border border-zinc-800 fill-zinc-400" />
+          <Background color="#000" gap={24} size={2} />
+          <Controls />
         </ReactFlow>
       </div>
     </div>
