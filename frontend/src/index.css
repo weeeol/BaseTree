@@ -7,11 +7,40 @@
 body {
   margin: 0;
   font-family: var(--font-sans);
+  background-color: #fafafa;
+  color: #000;
 }
 
-/* react-d3-tree link styles */
-.rd3t-link {
-  stroke: #3f3f46 !important; /* zinc-700 */
-  stroke-width: 1.5px !important;
-  fill: none !important;
+/* Brutalist Utilities */
+.brutalist-shadow {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.brutalist-shadow-sm {
+  box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+}
+
+.brutalist-border {
+  border: 3px solid #000;
+}
+
+/* React Flow Brutalist Overrides */
+.react-flow__controls-button {
+  background-color: #fff !important;
+  border-bottom: 2px solid #000 !important;
+  border-right: 2px solid #000 !important;
+  color: #000 !important;
+  fill: #000 !important;
+  border-radius: 0 !important;
+}
+
+.react-flow__controls {
+  box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1) !important;
+  border: 3px solid #000 !important;
+  border-radius: 0 !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #fef08a !important; /* yellow-200 */
 }

@@ -1,176 +1,119 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Network, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import Sidebar from './components/Sidebar';
-import TreeVisualization from './components/TreeVisualization';
+import FlowVisualization from './components/FlowVisualization';
+import CommandPalette from './components/CommandPalette';
+import useStore from './store/useStore';
 
 function App() {
-    const [treeData, setTreeData] = useState(null);
-    const [edges, setEdges] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [hasExperimentalLanguages, setHasExperimentalLanguages] = useState(false);
+    const { 
+        treeData, 
+        isLoading, 
+        error, 
+        hasExperimentalLanguages,
+        clearError
+    } = useStore();
 
-    const handleFetchTreeUrl = async (url) => {
-        setIsLoading(true);
-        setError(null);
-        setSearchQuery('');
-        
-        try {
-            const response = await fetch('http://localhost:3001/api/tree', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url }),
-            });
+    const [isWarningDismissed, setIsWarningDismissed] = React.useState(false);
 
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to fetch repository data');
-            setTreeData(data.tree);
-            setEdges(data.edges || []);
-            setHasExperimentalLanguages(data.hasExperimentalLanguages || false);
-        } catch (err) {
-            console.error(err);
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleUploadZip = async (file) => {
-        setIsLoading(true);
-        setError(null);
-        setSearchQuery('');
-
-        try {
-            const formData = new FormData();
-            formData.append('zipfile', file);
-
-            const response = await fetch('http://localhost:3001/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to process ZIP file');
-            setTreeData(data.tree);
-            setEdges(data.edges || []);
-            setHasExperimentalLanguages(data.hasExperimentalLanguages || false);
-        } catch (err) {
-            console.error(err);
-            setError(err.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    useEffect(() => {
+        if (treeData) setIsWarningDismissed(false);
+    }, [treeData]);
 
     return (
-        <div className="h-screen w-full flex bg-[#0a0a0a] text-zinc-100 selection:bg-indigo-500/30 selection:text-indigo-200 font-sans overflow-hidden">
-            <Sidebar 
-                onFetchTreeUrl={handleFetchTreeUrl} 
-                onUploadZip={handleUploadZip} 
-                isLoading={isLoading} 
-                treeData={treeData}
-            />
+        <div className="h-screen w-full flex bg-[#fafafa] text-black selection:bg-black selection:text-white font-sans overflow-hidden">
+            <Sidebar />
             
             <main className="flex-1 relative flex flex-col">
                 {/* Header for canvas context */}
                 <div className="absolute top-0 left-0 w-full p-6 pointer-events-none z-20 flex justify-between items-start">
                     <div className="flex flex-col gap-2">
-                        {error && (
-                            <div className="inline-block px-4 py-2 bg-red-950/80 border border-red-900/50 rounded-lg text-red-400 text-sm shadow-xl backdrop-blur-md pointer-events-auto">
-                                [Error] {error}
-                            </div>
-                        )}
+                        <AnimatePresence>
+                            {error && (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: -20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="inline-flex items-center gap-2 px-4 py-3 bg-red-400 border-3 border-black text-black text-sm brutalist-shadow pointer-events-auto font-bold pr-10 relative"
+                                >
+                                    <AlertCircle className="w-5 h-5 shrink-0" strokeWidth={3} />
+                                    <span className="uppercase tracking-wider">{error}</span>
+                                    <button 
+                                        onClick={clearError}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-black hover:text-white border-2 border-transparent hover:border-black transition-colors"
+                                    >
+                                        <X className="w-4 h-4" strokeWidth={3} />
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
 
-                    {/* Search Bar */}
-                    {treeData && (
-                        <div className="pointer-events-auto flex items-center bg-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 rounded-xl px-4 py-2.5 shadow-2xl shadow-black/50 w-80 focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
-                            <svg className="w-4 h-4 text-zinc-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                            <input 
-                                type="text"
-                                placeholder="Search files, functions, etc..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-transparent border-none text-sm text-zinc-200 focus:outline-none w-full placeholder-zinc-500"
-                            />
-                            {searchQuery && (
-                                <button onClick={() => setSearchQuery('')} className="text-zinc-500 hover:text-zinc-300 transition-colors">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            )}
-                        </div>
-                    )}
+                    {/* Command Palette Trigger & Modal */}
+                    <CommandPalette />
                 </div>
 
                 <div className="absolute bottom-6 right-6 pointer-events-none z-20 flex flex-col gap-2 items-end">
-                    {hasExperimentalLanguages && !error && (
-                        <div className="inline-block px-4 py-2 bg-amber-950/80 border border-amber-900/50 rounded-lg text-amber-400 text-sm shadow-xl backdrop-blur-md pointer-events-auto max-w-md">
-                            <span className="font-semibold">⚠️ Experimental Parsing:</span> Non-JS/TS languages detected. Their AST extraction is regex-based and may be inaccurate.
-                        </div>
-                    )}
+                    <AnimatePresence>
+                        {hasExperimentalLanguages && !error && !isWarningDismissed && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                                className="inline-flex items-start gap-3 px-5 py-4 bg-yellow-300 border-3 border-black text-black text-sm brutalist-shadow pointer-events-auto max-w-md relative pr-12"
+                            >
+                                <AlertTriangle className="w-6 h-6 shrink-0 mt-0.5" strokeWidth={3} />
+                                <div>
+                                    <span className="font-extrabold uppercase tracking-widest block mb-1">Experimental Parsing</span>
+                                    <span className="font-medium leading-relaxed">Non-JS/TS languages detected. Their AST extraction is regex-based and may be inaccurate.</span>
+                                </div>
+                                <button 
+                                    onClick={() => setIsWarningDismissed(true)}
+                                    className="absolute right-3 top-3 p-1 hover:bg-black hover:text-yellow-300 border-2 border-transparent hover:border-black transition-colors"
+                                >
+                                    <X className="w-5 h-5" strokeWidth={3} />
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 <div className="flex-1 w-full h-full p-6 relative z-10">
-                    {treeData ? (
-                        <div className="w-full h-full animate-in fade-in zoom-in-95 duration-500 ease-out">
-                            {(() => {
-                                const filterTree = (node, query) => {
-                                    if (!node) return null;
-                                    const isMatch = node.name.toLowerCase().includes(query.toLowerCase());
-                                    
-                                    if (node.children) {
-                                        const filteredChildren = node.children
-                                            .map(child => filterTree(child, query))
-                                            .filter(Boolean);
-                                            
-                                        if (isMatch || filteredChildren.length > 0) {
-                                            return {
-                                                ...node,
-                                                children: filteredChildren.length > 0 ? filteredChildren : undefined,
-                                                // React-d3-tree reads this property to force expand
-                                                __rd3t: { expanded: true }
-                                            };
-                                        }
-                                        return null;
-                                    }
-                                    
-                                    return isMatch ? node : null;
-                                };
-
-                                const displayData = (searchQuery && searchQuery.trim() !== '') 
-                                    ? filterTree(treeData, searchQuery) 
-                                    : treeData;
-
-                                // If search is active but no results, we should handle that gracefully
-                                // Or we just pass the filtered data
-                                return displayData ? (
-                                    <TreeVisualization 
-                                        key={searchQuery ? 'searching' : 'idle'} // Force remount to apply expansion depth
-                                        data={displayData} 
-                                        edges={edges} 
-                                        searchQuery={searchQuery} 
-                                        isSearching={!!searchQuery}
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-zinc-500">
-                                        No matching files or functions found.
-                                    </div>
-                                );
-                            })()}
-                        </div>
-                    ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-zinc-800/50 rounded-2xl bg-zinc-950/20">
-                            <svg className="w-16 h-16 text-zinc-800 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                            </svg>
-                            <h3 className="text-xl font-medium text-zinc-400">No Codebase Loaded</h3>
-                            <p className="text-zinc-600 mt-2">Use the sidebar to import a repository.</p>
-                        </div>
-                    )}
+                    <AnimatePresence mode="wait">
+                        {treeData ? (
+                            <motion.div 
+                                key="flow"
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.98 }}
+                                transition={{ duration: 0.3 }}
+                                className="w-full h-full"
+                            >
+                                <FlowVisualization />
+                            </motion.div>
+                        ) : (
+                            <motion.div 
+                                key="empty"
+                                initial={{ opacity: 0, scale: 0.98 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.98 }}
+                                transition={{ duration: 0.4, ease: "easeOut" }}
+                                className="w-full h-full flex flex-col items-center justify-center bg-white border-4 border-black brutalist-shadow"
+                            >
+                                <motion.div 
+                                    animate={{ rotate: [0, -5, 5, -5, 0] }}
+                                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                    className="p-6 bg-cyan-300 border-4 border-black brutalist-shadow mb-8"
+                                >
+                                    <Network className="w-16 h-16 text-black" strokeWidth={2} />
+                                </motion.div>
+                                <h3 className="text-3xl font-black text-black uppercase tracking-widest bg-yellow-300 px-4 py-2 border-3 border-black brutalist-shadow-sm rotate-[-2deg]">No Architecture Loaded</h3>
+                                <p className="text-black font-bold mt-6 max-w-sm text-center leading-relaxed text-lg bg-white border-2 border-black p-3 brutalist-shadow-sm rotate-[1deg]">Import a GitHub repository or upload a local ZIP file using the sidebar to generate a visual AST representation.</p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </main>
         </div>
