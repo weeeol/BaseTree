@@ -12,7 +12,7 @@ import {
 import useStore from '../store/useStore';
 
 export default function Sidebar() {
-    const { fetchTreeUrl, uploadZip, isLoading, treeData } = useStore();
+    const { fetchTreeUrl, uploadZip, isLoading, treeData, edges: dependencyEdges } = useStore();
     const [activeTab, setActiveTab] = useState('url'); // 'url' or 'zip'
     const [url, setUrl] = useState('');
     const fileInputRef = useRef(null);
@@ -174,6 +174,16 @@ export default function Sidebar() {
                             <p className="text-xs font-bold text-gray-700 mb-6 leading-relaxed">Download a markdown representation of the graph, optimized for large LLM context windows.</p>
                             <button
                                 onClick={() => {
+                                    const dependencyMap = {};
+                                    dependencyEdges.forEach(edge => {
+                                        if (!dependencyMap[edge.source]) dependencyMap[edge.source] = [];
+                                        const sourceName = edge.target.split('#')[1]?.replace(/_\d+$/, '') || edge.target; // Actually target is used by source, wait.
+                                        // Wait, the edge in parser.py is: source = import (or called func), target = calling func
+                                        // So target (calling func) depends on source (import)
+                                        if (!dependencyMap[edge.target]) dependencyMap[edge.target] = [];
+                                        dependencyMap[edge.target].push(edge.source.split('#')[1]?.replace(/_\d+$/, '') || edge.source);
+                                    });
+
                                     const generateTextMap = (node, depth = 0) => {
                                         if (!node) return '';
                                         let indent = '  '.repeat(depth);
@@ -187,7 +197,17 @@ export default function Sidebar() {
                                         let suffix = '';
                                         if (type === 'tree') suffix = '/';
                                         
-                                        text += `${indent}- ${node.name}${suffix}\n`;
+                                        let deps = '';
+                                        if (dependencyMap[node.attributes?.path]) {
+                                            // Deduplicate dependencies and clean up names
+                                            const uniqueDeps = [...new Set(dependencyMap[node.attributes.path].map(d => {
+                                                // Handle function names with byte offsets like name_123
+                                                return d.replace(/_\d+$/, '').replace(/^import_/, '');
+                                            }))];
+                                            deps = ` (uses: ${uniqueDeps.join(', ')})`;
+                                        }
+                                        
+                                        text += `${indent}- ${node.name}${suffix}${deps}\n`;
                                         
                                         if (node.children) {
                                             text += node.children.map(c => generateTextMap(c, depth + 1)).join('');
@@ -218,7 +238,7 @@ export default function Sidebar() {
             
             <div className="p-4 border-t-4 border-black bg-white">
                 <div className="flex items-center justify-between text-xs text-black font-bold uppercase tracking-wider">
-                    <span>Powered by @babel/parser</span>
+                    <span>Powered by Tree-sitter</span>
                     <span className="flex items-center gap-2">
                         <div className="w-3 h-3 border-2 border-black bg-emerald-400" />
                         Ready
