@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ReactFlow, MiniMap, Controls, Background } from '@xyflow/react';
+import { ReactFlow, Controls, Background } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import CustomNode from './CustomNode';
 import { transformTreeToFlow } from '../utils/layout';
@@ -36,21 +36,13 @@ export default function FlowVisualization() {
           edges={edges}
           nodeTypes={nodeTypes}
           fitView
+          fitViewOptions={{ minZoom: 0.8, maxZoom: 1 }}
           minZoom={0.1}
-          maxZoom={1.5}
+          maxZoom={2}
           proOptions={{ hideAttribution: true }}
         >
           <Background color="#3f3f46" gap={16} />
           <Controls className="bg-zinc-900 border border-zinc-800 fill-zinc-400" />
-          <MiniMap 
-            nodeColor={(n) => {
-              if (n.data?.type === 'tree') return '#818cf8'; // indigo-400
-              if (n.data?.type === 'function') return '#c084fc'; // purple-400
-              return '#a1a1aa'; // zinc-400
-            }}
-            maskColor="rgba(24, 24, 27, 0.5)"
-            className="bg-zinc-950 border border-zinc-800"
-          />
         </ReactFlow>
       </div>
     </div>

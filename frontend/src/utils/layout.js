@@ -7,7 +7,8 @@ export const getLayoutedElements = (nodes, edges, direction = 'LR') => {
   const nodeWidth = 240;
   const nodeHeight = 60;
 
-  dagreGraph.setGraph({ rankdir: direction, ranksep: 100, nodesep: 50 });
+  // Tighter vertical spacing between siblings (nodesep) and wider horizontal spacing between folders (ranksep)
+  dagreGraph.setGraph({ rankdir: direction, ranksep: 200, nodesep: 15 });
 
   nodes.forEach((node) => {
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -27,9 +28,17 @@ export const getLayoutedElements = (nodes, edges, direction = 'LR') => {
     node.targetPosition = direction === 'LR' ? 'left' : 'top';
     node.sourcePosition = direction === 'LR' ? 'right' : 'bottom';
     
+    // Create a subtle staircase effect for leaf nodes (files/functions) 
+    // so they don't form a perfectly straight vertical line
+    let staircaseOffset = 0;
+    if (node.data.isLeaf) {
+        // Shift right by 15px per sibling, resetting every 8 nodes to avoid overflowing into the next layer
+        staircaseOffset = (node.data.siblingIndex % 8) * 20;
+    }
+
     // Shift dagre node position (anchor=center) to top left for React Flow
     node.position = {
-      x: nodeWithPosition.x - nodeWidth / 2,
+      x: nodeWithPosition.x - nodeWidth / 2 + staircaseOffset,
       y: nodeWithPosition.y - nodeHeight / 2,
     };
     return node;
@@ -47,7 +56,7 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
   let nodeIdCounter = 0;
 
   // Flatten tree recursively
-  const traverse = (node, parentId = null) => {
+  const traverse = (node, parentId = null, siblingIndex = 0) => {
     const id = node.attributes?.path || `group-${nodeIdCounter++}`;
     
     let isMatch = true;
@@ -63,7 +72,9 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
         type: node.attributes?.type,
         size: node.attributes?.size,
         path: node.attributes?.path,
-        isMatch
+        isMatch,
+        siblingIndex,
+        isLeaf: !node.children || node.children.length === 0
       },
       position: { x: 0, y: 0 } // Computed later by dagre
     });
@@ -79,7 +90,7 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
     }
 
     if (node.children) {
-      node.children.forEach(child => traverse(child, id));
+      node.children.forEach((child, index) => traverse(child, id, index));
     }
   };
 
