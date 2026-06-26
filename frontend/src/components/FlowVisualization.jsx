@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ReactFlow, Controls, Background } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import CustomNode from './CustomNode';
@@ -11,10 +11,30 @@ const nodeTypes = {
 
 export default function FlowVisualization() {
   const { treeData, edges: dependencyEdges, searchQuery } = useStore();
+  const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
   const { nodes, edges } = useMemo(() => {
     return transformTreeToFlow(treeData, dependencyEdges, searchQuery);
   }, [treeData, dependencyEdges, searchQuery]);
+
+  const styledEdges = useMemo(() => {
+    return edges.map(e => {
+      if (e.data?.type === 'dependency') {
+        const isHighlighted = hoveredNodeId && (e.source === hoveredNodeId || e.target === hoveredNodeId);
+        return {
+          ...e,
+          animated: isHighlighted,
+          style: {
+            ...e.style,
+            stroke: isHighlighted ? '#ec4899' : '#cbd5e1', // Pink when highlighted
+            strokeWidth: isHighlighted ? 4 : 2,
+          },
+          zIndex: isHighlighted ? 1000 : 0,
+        };
+      }
+      return e;
+    });
+  }, [edges, hoveredNodeId]);
 
   if (!treeData) return null;
 
@@ -33,8 +53,10 @@ export default function FlowVisualization() {
       <div style={{ width: '100%', height: '100%' }} className="relative z-10">
         <ReactFlow
           nodes={nodes}
-          edges={edges}
+          edges={styledEdges}
           nodeTypes={nodeTypes}
+          onNodeMouseEnter={(_, node) => setHoveredNodeId(node.id)}
+          onNodeMouseLeave={() => setHoveredNodeId(null)}
           fitView
           fitViewOptions={{ minZoom: 0.8, maxZoom: 1 }}
           minZoom={0.1}

@@ -4,14 +4,31 @@ export const getLayoutedElements = (nodes, edges, direction = 'LR') => {
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  const nodeWidth = 280;
   const nodeHeight = 80;
 
   // Tighter vertical spacing between siblings (nodesep) and wider horizontal spacing between folders (ranksep)
   dagreGraph.setGraph({ rankdir: direction, ranksep: 400, nodesep: 30 });
 
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
+    // Estimate width based on character count. Uppercase tracking-widest text takes about 9px per char.
+    const isSmall = node.data.type === 'function' || node.data.type === 'import';
+    const minWidth = isSmall ? 220 : 260;
+    const padding = 80; // icons + internal padding + margins
+    const textLength = node.data.label ? node.data.label.length : 10;
+    
+    // We cap width at 400px (our max-w-[400px] in CustomNode)
+    const maxTextWidth = 400 - padding;
+    const estimatedTextWidth = textLength * 9;
+    
+    const estimatedWidth = Math.min(400, Math.max(minWidth, estimatedTextWidth + padding));
+    
+    // If text wraps, increase height
+    const lines = Math.max(1, Math.ceil(estimatedTextWidth / maxTextWidth));
+    const baseHeight = isSmall ? 44 : 64;
+    const estimatedHeight = baseHeight + ((lines - 1) * 20); // roughly 20px per wrapped line
+    
+    dagreGraph.setNode(node.id, { width: estimatedWidth, height: estimatedHeight });
+    node.data.measuredWidth = estimatedWidth; // store just in case
   });
 
   edges.forEach((edge) => {
@@ -38,8 +55,8 @@ export const getLayoutedElements = (nodes, edges, direction = 'LR') => {
 
     // Shift dagre node position (anchor=center) to top left for React Flow
     node.position = {
-      x: nodeWithPosition.x - nodeWidth / 2 + staircaseOffset,
-      y: nodeWithPosition.y - nodeHeight / 2,
+      x: nodeWithPosition.x - nodeWithPosition.width / 2 + staircaseOffset,
+      y: nodeWithPosition.y - nodeWithPosition.height / 2,
     };
     return node;
   });
@@ -103,7 +120,7 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
       source: edge.source,
       target: edge.target,
       type: 'bezier',
-      style: { stroke: '#000', strokeWidth: 3, strokeDasharray: '6,6' }, // Brutalist dependency edge
+      style: { stroke: '#cbd5e1', strokeWidth: 2, strokeDasharray: '6,6' }, // Light gray dependency edge
       data: { type: 'dependency' }
     });
   });

@@ -1,0 +1,9 @@
+flask
+flask-cors
+requests
+tree-sitter
+tree-sitter-javascript
+tree-sitter-python
+tree-sitter-go
+tree-sitter-java
+tree-sitter-cpp

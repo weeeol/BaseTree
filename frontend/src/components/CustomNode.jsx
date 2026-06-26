@@ -37,7 +37,7 @@ export default function CustomNode({ data }) {
 
     if (isFolder || isFile || isGroup) {
         content = (
-            <div className={`flex items-center w-[260px] h-[64px] px-5 border-3 border-black brutalist-shadow-sm transition-all duration-300 bg-white ${opacityClass} ${
+            <div className={`flex items-center min-w-[260px] max-w-[400px] w-max min-h-[64px] h-fit py-3 px-5 border-3 border-black brutalist-shadow-sm transition-all duration-300 bg-white ${opacityClass} ${
                 isFolder ? 'bg-cyan-300' : 
                 isGroup ? 'bg-yellow-300' :
                 'bg-white'
@@ -45,8 +45,8 @@ export default function CustomNode({ data }) {
                 <div className="flex-shrink-0 mr-4">
                     {isFolder ? Icons.folder : isGroup ? null : Icons.file}
                 </div>
-                <div className="flex flex-col truncate">
-                    <span className={`font-black truncate text-black uppercase tracking-widest ${isFolder ? 'text-base' : isGroup ? 'text-xs' : 'text-sm'}`}>
+                <div className="flex flex-col">
+                    <span className={`font-black text-black uppercase tracking-widest whitespace-normal break-words pr-2 ${isFolder ? 'text-base' : isGroup ? 'text-xs' : 'text-sm'}`}>
                         {label}
                     </span>
                     {isFile && size > 0 && (
@@ -59,14 +59,14 @@ export default function CustomNode({ data }) {
         );
     } else {
         content = (
-            <div className={`flex items-center w-[220px] h-[44px] px-4 border-3 border-black brutalist-shadow-sm transition-all duration-300 ${opacityClass} ${
+            <div className={`flex items-center min-w-[220px] max-w-[400px] w-max min-h-[44px] h-fit py-2 px-4 border-3 border-black brutalist-shadow-sm transition-all duration-300 ${opacityClass} ${
                 isFunction ? 'bg-purple-300 text-black' : 
                 'bg-green-300 text-black'
             }`}>
                 <div className="flex-shrink-0 mr-3">
                     {isFunction ? Icons.function : Icons.import}
                 </div>
-                <span className="font-black text-sm truncate uppercase tracking-widest">
+                <span className="font-black text-sm uppercase tracking-widest whitespace-normal break-words pr-2">
                     {label}
                 </span>
             </div>
