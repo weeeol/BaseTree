@@ -9,6 +9,10 @@ from parser import parse_file
 app = Flask(__name__)
 CORS(app)
 
+MAX_FILE_SIZE = 1 * 1024 * 1024 # 1MB limit for parsing
+MAX_TOTAL_SIZE = 200 * 1024 * 1024 # 200MB total uncompressed limit
+MAX_FILES = 10000
+
 def build_tree(zip_obj):
     root = {
         "name": "root",
@@ -21,7 +25,13 @@ def build_tree(zip_obj):
     
     file_list = zip_obj.namelist()
     
+    total_size = 0
+    file_count = 0
+    
     for fpath in file_list:
+        if file_count >= MAX_FILES:
+            break
+            
         if "/node_modules/" in fpath or "/.git/" in fpath:
             continue
             
@@ -42,17 +52,24 @@ def build_tree(zip_obj):
             if curr_path not in dirs:
                 if is_file:
                     file_info = zip_obj.getinfo(fpath)
+                    total_size += file_info.file_size
+                    file_count += 1
+                    
+                    if total_size > MAX_TOTAL_SIZE:
+                        raise Exception("ZIP Bomb detected: Uncompressed size exceeds 200MB limit.")
+
                     node = {
                         "name": part,
                         "attributes": {"path": curr_path, "type": "blob", "size": file_info.file_size}
                     }
                     
                     try:
-                        file_bytes = zip_obj.read(fpath)
-                        children, local_edges = parse_file(part, file_bytes)
-                        all_edges.extend(local_edges)
-                        if children:
-                            node["children"] = children
+                        if file_info.file_size <= MAX_FILE_SIZE:
+                            file_bytes = zip_obj.read(fpath)
+                            children, local_edges = parse_file(part, file_bytes)
+                            all_edges.extend(local_edges)
+                            if children:
+                                node["children"] = children
                     except Exception as e:
                         print(f"Error parsing {fpath}: {e}")
                         pass
@@ -120,7 +137,7 @@ def fetch_tree():
     if not url:
         return jsonify({"error": "URL is required"}), 400
         
-    match = re.match(r"https://github\.com/([^/]+)/([^/]+)", url)
+    match = re.match(r"^https://github\.com/([^/]+)/([^/?#]+)", url)
     if not match:
         return jsonify({"error": "Invalid GitHub URL"}), 400
         
