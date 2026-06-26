@@ -10,12 +10,12 @@ const nodeTypes = {
 };
 
 export default function FlowVisualization() {
-  const { treeData, edges: dependencyEdges, searchQuery } = useStore();
+  const { treeData, edges: dependencyEdges, searchQuery, filters, collapsedNodes, toggleCollapse } = useStore();
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
 
   const { nodes, edges } = useMemo(() => {
-    return transformTreeToFlow(treeData, dependencyEdges, searchQuery);
-  }, [treeData, dependencyEdges, searchQuery]);
+    return transformTreeToFlow(treeData, dependencyEdges, searchQuery, filters, collapsedNodes, toggleCollapse);
+  }, [treeData, dependencyEdges, searchQuery, filters, collapsedNodes, toggleCollapse]);
 
   const styledEdges = useMemo(() => {
     return edges.map(e => {

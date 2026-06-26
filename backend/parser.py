@@ -31,7 +31,7 @@ def parse_file(filename, code_bytes):
 
     extracted_nodes = []
     
-    # Pass 1: Extract functions and imports
+    # Pass 1: Extract functions, classes, and imports
     def walk_extraction(node):
         type_name = node.type
         
@@ -43,11 +43,19 @@ def parse_file(filename, code_bytes):
             return text
             
         is_function = False
-        name = "function"
+        is_class = False
+        name = "unknown"
         
-        # Identify function nodes and get name
+        # Identify function nodes
         if type_name in ("function_declaration", "arrow_function", "method_definition", "function", "function_definition", "method_declaration"):
             is_function = True
+            name_node = node.child_by_field_name("name")
+            if name_node:
+                name = code_bytes[name_node.start_byte:name_node.end_byte].decode('utf-8', errors='ignore')
+                
+        # Identify class/struct/interface nodes
+        elif type_name in ("class_declaration", "class_definition", "interface_declaration", "class_specifier", "struct_specifier", "type_spec"):
+            is_class = True
             name_node = node.child_by_field_name("name")
             if name_node:
                 name = code_bytes[name_node.start_byte:name_node.end_byte].decode('utf-8', errors='ignore')
@@ -64,9 +72,15 @@ def parse_file(filename, code_bytes):
                 "node": node,
                 "path": f"{filename}#{name}_{node.start_byte}"
             })
+        elif is_class:
+            extracted_nodes.append({
+                "type": "class",
+                "name": name,
+                "node": node,
+                "path": f"{filename}#{name}_{node.start_byte}"
+            })
         elif is_import:
-            # We want to extract imported identifiers for Pass 2 to match against
-            # A simple heuristic: all identifier nodes inside the import statement
+            # Simple heuristic: all identifier nodes inside the import statement
             identifiers = set()
             def find_identifiers(n):
                 if "identifier" in n.type or n.type == "name":
@@ -89,10 +103,12 @@ def parse_file(filename, code_bytes):
     walk_extraction(tree.root_node)
     
     functions = []
+    classes = []
     imports = []
     
     import_map = {} 
     function_map = {} 
+    class_map = {}
     
     for n in extracted_nodes:
         if n["type"] == "function":
@@ -101,6 +117,12 @@ def parse_file(filename, code_bytes):
                 "attributes": {"path": n["path"], "type": "function", "size": 0}
             })
             function_map[n["name"]] = n["path"]
+        elif n["type"] == "class":
+            classes.append({
+                "name": n["name"],
+                "attributes": {"path": n["path"], "type": "class", "size": 0}
+            })
+            class_map[n["name"]] = n["path"]
         else:
             imports.append({
                 "name": n["name"],
@@ -110,6 +132,12 @@ def parse_file(filename, code_bytes):
                 import_map[ident] = n["path"]
                 
     children = []
+    if classes:
+        children.append({
+            "name": "Classes",
+            "attributes": {"path": f"{filename}#classes", "type": "class_group", "size": 0},
+            "children": classes
+        })
     if functions:
         children.append({
             "name": "Functions",
@@ -126,9 +154,9 @@ def parse_file(filename, code_bytes):
     # Pass 2: Usage Analysis (Edges)
     edges = []
     for n in extracted_nodes:
-        if n["type"] == "function":
-            func_path = n["path"]
-            func_node = n["node"]
+        if n["type"] in ("function", "class"):
+            source_path = n["path"]
+            source_node = n["node"]
             
             seen_edges = set()
             
@@ -138,23 +166,28 @@ def parse_file(filename, code_bytes):
                     
                     if ident in import_map:
                         target = import_map[ident]
-                        edge_key = f"{target}->{func_path}"
+                        edge_key = f"{target}->{source_path}"
                         if edge_key not in seen_edges:
-                            # Draw edge from IMPORT to FUNCTION
-                            edges.append({"source": target, "target": func_path, "type": "dependency"})
+                            edges.append({"source": target, "target": source_path, "type": "dependency"})
                             seen_edges.add(edge_key)
                             
-                    if ident in function_map and function_map[ident] != func_path:
+                    if ident in function_map and function_map[ident] != source_path:
                         target = function_map[ident]
-                        edge_key = f"{target}->{func_path}"
+                        edge_key = f"{target}->{source_path}"
                         if edge_key not in seen_edges:
-                            # Draw edge from CALLED FUNCTION to THIS FUNCTION
-                            edges.append({"source": target, "target": func_path, "type": "dependency"})
+                            edges.append({"source": target, "target": source_path, "type": "dependency"})
+                            seen_edges.add(edge_key)
+                            
+                    if ident in class_map and class_map[ident] != source_path:
+                        target = class_map[ident]
+                        edge_key = f"{target}->{source_path}"
+                        if edge_key not in seen_edges:
+                            edges.append({"source": target, "target": source_path, "type": "dependency"})
                             seen_edges.add(edge_key)
                             
                 for c in child_node.children:
                     walk_usage(c)
                     
-            walk_usage(func_node)
+            walk_usage(source_node)
             
     return children, edges

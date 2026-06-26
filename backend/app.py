@@ -71,6 +71,23 @@ def build_tree(zip_obj):
                         dirs[parent_path]["children"] = []
                     dirs[parent_path]["children"].append(node)
 
+    def sort_tree(node):
+        if "children" in node:
+            def get_order(child):
+                t = child.get("attributes", {}).get("type", "")
+                if t == "tree": return 0
+                if t == "blob": return 1
+                if t == "class_group": return 2
+                if t == "function_group": return 3
+                if t == "import_group": return 4
+                return 5
+                
+            node["children"].sort(key=lambda x: (get_order(x), x.get("name", "").lower()))
+            for child in node["children"]:
+                sort_tree(child)
+                
+    sort_tree(root)
+
     if len(root["children"]) == 1 and root["children"][0]["attributes"]["type"] == "tree":
         return root["children"][0], all_edges
         

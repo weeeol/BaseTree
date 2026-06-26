@@ -1,5 +1,6 @@
 import React from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const Icons = {
     folder: (
@@ -21,23 +22,29 @@ const Icons = {
         <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
+    ),
+    class: (
+        <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+        </svg>
     )
 };
 
-export default function CustomNode({ data }) {
-    const { label, type, size, isMatch } = data;
+export default function CustomNode({ id, data }) {
+    const { label, type, size, isMatch, isCollapsed, toggleCollapse } = data;
     const isFolder = type === 'tree';
     const isFile = type === 'blob';
     const isFunction = type === 'function';
+    const isClass = type === 'class';
     const isImport = type === 'import';
-    const isGroup = type === 'function_group' || type === 'import_group';
+    const isGroup = type === 'function_group' || type === 'import_group' || type === 'class_group';
 
     const opacityClass = isMatch !== false ? 'opacity-100' : 'opacity-20 grayscale';
     let content = null;
 
     if (isFolder || isFile || isGroup) {
         content = (
-            <div className={`flex items-center min-w-[260px] max-w-[400px] w-max min-h-[64px] h-fit py-3 px-5 border-3 border-black brutalist-shadow-sm transition-all duration-300 bg-white ${opacityClass} ${
+            <div className={`relative flex items-center min-w-[260px] max-w-[400px] w-max min-h-[64px] h-fit py-3 px-5 border-3 border-black brutalist-shadow-sm transition-all duration-300 bg-white ${opacityClass} ${
                 isFolder ? 'bg-cyan-300' : 
                 isGroup ? 'bg-yellow-300' :
                 'bg-white'
@@ -45,8 +52,8 @@ export default function CustomNode({ data }) {
                 <div className="flex-shrink-0 mr-4">
                     {isFolder ? Icons.folder : isGroup ? null : Icons.file}
                 </div>
-                <div className="flex flex-col">
-                    <span className={`font-black text-black uppercase tracking-widest whitespace-normal break-words pr-2 ${isFolder ? 'text-base' : isGroup ? 'text-xs' : 'text-sm'}`}>
+                <div className="flex flex-col flex-1">
+                    <span className={`font-black text-black uppercase tracking-widest whitespace-normal break-words pr-8 ${isFolder ? 'text-base' : isGroup ? 'text-xs' : 'text-sm'}`}>
                         {label}
                     </span>
                     {isFile && size > 0 && (
@@ -55,16 +62,32 @@ export default function CustomNode({ data }) {
                         </span>
                     )}
                 </div>
+                {(isFolder || isGroup) && (
+                    <button 
+                        className="nodrag absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-black/10 rounded-none transition-colors"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleCollapse(id);
+                        }}
+                    >
+                        {isCollapsed ? (
+                            <ChevronRight strokeWidth={3} className="w-5 h-5 text-black animate-idle-x" />
+                        ) : (
+                            <ChevronDown strokeWidth={3} className="w-5 h-5 text-black animate-idle-y" />
+                        )}
+                    </button>
+                )}
             </div>
         );
     } else {
         content = (
             <div className={`flex items-center min-w-[220px] max-w-[400px] w-max min-h-[44px] h-fit py-2 px-4 border-3 border-black brutalist-shadow-sm transition-all duration-300 ${opacityClass} ${
-                isFunction ? 'bg-purple-300 text-black' : 
+                isFunction ? 'bg-pink-300 text-black' : 
+                isClass ? 'bg-purple-300 text-black' :
                 'bg-green-300 text-black'
             }`}>
                 <div className="flex-shrink-0 mr-3">
-                    {isFunction ? Icons.function : Icons.import}
+                    {isFunction ? Icons.function : isClass ? Icons.class : Icons.import}
                 </div>
                 <span className="font-black text-sm uppercase tracking-widest whitespace-normal break-words pr-2">
                     {label}

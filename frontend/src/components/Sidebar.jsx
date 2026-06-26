@@ -12,7 +12,7 @@ import {
 import useStore from '../store/useStore';
 
 export default function Sidebar() {
-    const { fetchTreeUrl, uploadZip, isLoading, treeData, edges: dependencyEdges } = useStore();
+    const { fetchTreeUrl, uploadZip, isLoading, treeData, edges: dependencyEdges, filters, setFilter, expandAll, collapseAll } = useStore();
     const [activeTab, setActiveTab] = useState('url'); // 'url' or 'zip'
     const [url, setUrl] = useState('');
     const fileInputRef = useRef(null);
@@ -159,6 +159,63 @@ export default function Sidebar() {
                     </div>
                 </div>
 
+                {/* Filters */}
+                <AnimatePresence>
+                    {treeData && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-2 border-t-4 border-black pt-6"
+                        >
+                            <h2 className="text-sm font-black text-black uppercase tracking-widest mb-4">
+                                Graph Filters
+                            </h2>
+                            <div className="flex flex-col gap-3">
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <div className="relative flex items-center justify-center w-6 h-6 border-3 border-black bg-white brutalist-shadow-sm group-hover:translate-x-[1px] group-hover:translate-y-[1px] group-hover:shadow-none transition-all">
+                                        <input 
+                                            type="checkbox" 
+                                            className="peer sr-only"
+                                            checked={filters.hideImports}
+                                            onChange={(e) => setFilter('hideImports', e.target.checked)}
+                                        />
+                                        <div className="absolute inset-0 bg-black scale-0 peer-checked:scale-100 transition-transform origin-bottom-left" />
+                                        <svg className="absolute w-4 h-4 text-white scale-0 peer-checked:scale-100 transition-transform z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
+                                    </div>
+                                    <span className="text-xs font-bold text-black uppercase tracking-wider">Hide Imports</span>
+                                </label>
+                                <label className="flex items-center gap-3 cursor-pointer group">
+                                    <div className="relative flex items-center justify-center w-6 h-6 border-3 border-black bg-white brutalist-shadow-sm group-hover:translate-x-[1px] group-hover:translate-y-[1px] group-hover:shadow-none transition-all">
+                                        <input 
+                                            type="checkbox" 
+                                            className="peer sr-only"
+                                            checked={filters.hideTests}
+                                            onChange={(e) => setFilter('hideTests', e.target.checked)}
+                                        />
+                                        <div className="absolute inset-0 bg-black scale-0 peer-checked:scale-100 transition-transform origin-bottom-left" />
+                                        <svg className="absolute w-4 h-4 text-white scale-0 peer-checked:scale-100 transition-transform z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="4" d="M5 13l4 4L19 7" /></svg>
+                                    </div>
+                                    <span className="text-xs font-bold text-black uppercase tracking-wider">Hide Test Files</span>
+                                </label>
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                                <button
+                                    onClick={expandAll}
+                                    className="flex-1 bg-white hover:bg-yellow-200 text-black font-black uppercase tracking-widest px-2 py-2 border-3 border-black brutalist-shadow-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all text-[10px]"
+                                >
+                                    Expand All
+                                </button>
+                                <button
+                                    onClick={collapseAll}
+                                    className="flex-1 bg-white hover:bg-yellow-200 text-black font-black uppercase tracking-widest px-2 py-2 border-3 border-black brutalist-shadow-sm hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all text-[10px]"
+                                >
+                                    Collapse All
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 {/* Export Button */}
                 <AnimatePresence>
                     {treeData && (
@@ -190,7 +247,7 @@ export default function Sidebar() {
                                         let text = '';
                                         
                                         const type = node.attributes?.type;
-                                        if (type === 'function_group' || type === 'import_group') {
+                                        if (type === 'function_group' || type === 'import_group' || type === 'class_group') {
                                             return node.children ? node.children.map(c => generateTextMap(c, depth)).join('') : '';
                                         }
 

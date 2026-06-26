@@ -24,6 +24,25 @@ body {
   border: 3px solid #000;
 }
 
+/* Animations */
+@keyframes custom-bounce-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+
+@keyframes custom-bounce-x {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
+}
+
+.animate-idle-y {
+  animation: custom-bounce-y 1.5s ease-in-out infinite;
+}
+
+.animate-idle-x {
+  animation: custom-bounce-x 1.5s ease-in-out infinite;
+}
+
 /* React Flow Brutalist Overrides */
 .react-flow__controls-button {
   background-color: #fff !important;

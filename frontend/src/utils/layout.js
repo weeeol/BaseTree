@@ -7,11 +7,11 @@ export const getLayoutedElements = (nodes, edges, direction = 'LR') => {
   const nodeHeight = 80;
 
   // Tighter vertical spacing between siblings (nodesep) and wider horizontal spacing between folders (ranksep)
-  dagreGraph.setGraph({ rankdir: direction, ranksep: 400, nodesep: 30 });
+  dagreGraph.setGraph({ rankdir: direction, ranksep: 400, nodesep: 70 });
 
   nodes.forEach((node) => {
     // Estimate width based on character count. Uppercase tracking-widest text takes about 9px per char.
-    const isSmall = node.data.type === 'function' || node.data.type === 'import';
+    const isSmall = node.data.type === 'function' || node.data.type === 'import' || node.data.type === 'class';
     const minWidth = isSmall ? 220 : 260;
     const padding = 80; // icons + internal padding + margins
     const textLength = node.data.label ? node.data.label.length : 10;
@@ -64,7 +64,7 @@ export const getLayoutedElements = (nodes, edges, direction = 'LR') => {
   return { nodes, edges };
 };
 
-export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery = '') => {
+export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery = '', filters = {}, collapsedNodes = new Set(), toggleCollapse = () => {}) => {
   const nodes = [];
   const edges = [];
   
@@ -74,7 +74,19 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
 
   // Flatten tree recursively
   const traverse = (node, parentId = null, siblingIndex = 0) => {
+    if (filters.hideImports && (node.attributes?.type === 'import' || node.attributes?.type === 'import_group')) {
+        return;
+    }
+    
+    if (filters.hideTests && node.attributes?.type === 'blob') {
+        const name = node.name.toLowerCase();
+        if (name.includes('.test.') || name.includes('.spec.') || name.startsWith('test_') || name.endsWith('_test.go')) {
+            return;
+        }
+    }
+
     const id = node.attributes?.path || `group-${nodeIdCounter++}`;
+    const isCollapsed = collapsedNodes.has(id);
     
     let isMatch = true;
     if (searchQuery && searchQuery.trim() !== '') {
@@ -91,7 +103,9 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
         path: node.attributes?.path,
         isMatch,
         siblingIndex,
-        isLeaf: !node.children || node.children.length === 0
+        isLeaf: !node.children || node.children.length === 0,
+        isCollapsed,
+        toggleCollapse
       },
       position: { x: 0, y: 0 } // Computed later by dagre
     });
@@ -106,23 +120,27 @@ export const transformTreeToFlow = (treeData, dependencyEdges = [], searchQuery 
       });
     }
 
-    if (node.children) {
+    if (node.children && !isCollapsed) {
       node.children.forEach((child, index) => traverse(child, id, index));
     }
   };
 
   traverse(treeData);
 
+  const validNodeIds = new Set(nodes.map(n => n.id));
+
   // Add dependency edges
   dependencyEdges.forEach((edge, index) => {
-    edges.push({
-      id: `dep-${index}`,
-      source: edge.source,
-      target: edge.target,
-      type: 'bezier',
-      style: { stroke: '#cbd5e1', strokeWidth: 2, strokeDasharray: '6,6' }, // Light gray dependency edge
-      data: { type: 'dependency' }
-    });
+    if (validNodeIds.has(edge.source) && validNodeIds.has(edge.target)) {
+      edges.push({
+        id: `dep-${index}`,
+        source: edge.source,
+        target: edge.target,
+        type: 'bezier',
+        style: { stroke: '#cbd5e1', strokeWidth: 2, strokeDasharray: '6,6' }, // Light gray dependency edge
+        data: { type: 'dependency' }
+      });
+    }
   });
 
   return getLayoutedElements(nodes, edges);
