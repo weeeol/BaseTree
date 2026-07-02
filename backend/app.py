@@ -1,13 +1,23 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import zipfile
 import io
-import urllib.request
+import httpx
 import re
+from fastapi.concurrency import run_in_threadpool
 from parser import parse_file
+import uvicorn
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 MAX_FILE_SIZE = 1 * 1024 * 1024 # 1MB limit for parsing
 MAX_TOTAL_SIZE = 200 * 1024 * 1024 # 200MB total uncompressed limit
@@ -110,66 +120,63 @@ def build_tree(zip_obj):
         
     return root, all_edges
 
-@app.route('/api/upload', methods=['POST'])
-def upload_zip():
-    if 'zipfile' not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-        
-    file = request.files['zipfile']
+@app.post("/api/upload")
+async def upload_zip(zipfile: UploadFile = File(...)):
     try:
-        file_bytes = file.read()
+        file_bytes = await zipfile.read()
         zip_obj = zipfile.ZipFile(io.BytesIO(file_bytes))
         
-        tree, edges = build_tree(zip_obj)
+        tree, edges = await run_in_threadpool(build_tree, zip_obj)
         
-        return jsonify({
+        return {
             "tree": tree,
-            "edges": edges,
-            "hasExperimentalLanguages": False
-        })
+            "edges": edges
+        }
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.route('/api/tree', methods=['POST'])
-def fetch_tree():
-    data = request.get_json()
-    url = data.get('url')
+class RepoRequest(BaseModel):
+    url: str
+
+@app.post("/api/tree")
+async def fetch_tree(data: RepoRequest):
+    url = data.url
     if not url:
-        return jsonify({"error": "URL is required"}), 400
+        raise HTTPException(status_code=400, detail="URL is required")
         
     match = re.match(r"^https://github\.com/([^/]+)/([^/?#]+)", url)
     if not match:
-        return jsonify({"error": "Invalid GitHub URL"}), 400
+        raise HTTPException(status_code=400, detail="Invalid GitHub URL")
         
     owner = match.group(1)
     repo = match.group(2)
     
     zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/main.zip"
     
-    try:
-        req = urllib.request.Request(zip_url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as response:
-            file_bytes = response.read()
-    except Exception:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         try:
-            zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/master.zip"
-            req = urllib.request.Request(zip_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req) as response:
-                file_bytes = response.read()
-        except Exception as e:
-            return jsonify({"error": f"Failed to download repository: {str(e)}"}), 500
+            response = await client.get(zip_url)
+            response.raise_for_status()
+            file_bytes = response.content
+        except httpx.HTTPError:
+            try:
+                zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/master.zip"
+                response = await client.get(zip_url)
+                response.raise_for_status()
+                file_bytes = response.content
+            except httpx.HTTPError as e:
+                raise HTTPException(status_code=500, detail=f"Failed to download repository: {str(e)}")
             
     try:
         zip_obj = zipfile.ZipFile(io.BytesIO(file_bytes))
-        tree, edges = build_tree(zip_obj)
+        tree, edges = await run_in_threadpool(build_tree, zip_obj)
         
-        return jsonify({
+        return {
             "tree": tree,
-            "edges": edges,
-            "hasExperimentalLanguages": False
-        })
+            "edges": edges
+        }
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == '__main__':
-    app.run(port=3001, debug=True)
+    uvicorn.run("app:app", host="127.0.0.1", port=3001, reload=True)

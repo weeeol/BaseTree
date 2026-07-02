@@ -20,7 +20,8 @@
 - **Visualization**: `React Flow` with custom HTML Node renders and dynamic resizing
 
 ### Backend (AST Engine)
-- **Server**: Python & Flask
+- **Server**: Python & FastAPI (Uvicorn)
+- **Concurrency**: Fully asynchronous with heavy AST extraction offloaded to a thread pool
 - **Zip Processing**: Native `zipfile` (in-memory buffer parsing, no local temp files)
 - **Parsers**: `tree-sitter` native bindings for JS/TS, Python, Go, Java, and C++.
 
