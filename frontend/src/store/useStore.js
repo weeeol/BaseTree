@@ -6,7 +6,6 @@ const useStore = create((set) => ({
   isLoading: false,
   error: null,
   searchQuery: '',
-  hasExperimentalLanguages: false,
   filters: {
     hideImports: false,
     hideTests: false,
@@ -54,18 +53,27 @@ const useStore = create((set) => ({
         body: JSON.stringify({ url }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to fetch repository data');
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error(`Server error (${response.status}). The repository might be too large or the server timed out.`);
+      }
+
+      if (!response.ok) throw new Error(data?.error || 'Failed to fetch repository data');
       
       set({ 
         treeData: data.tree, 
         edges: data.edges || [],
-        hasExperimentalLanguages: data.hasExperimentalLanguages || false,
         isLoading: false
       });
     } catch (err) {
       console.error(err);
-      set({ error: err.message, isLoading: false });
+      let errorMessage = err.message;
+      if (err.name === 'TypeError' && errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Network error or server timeout. The repository might be too large to parse synchronously.';
+      }
+      set({ error: errorMessage, isLoading: false });
     }
   },
 
@@ -81,18 +89,27 @@ const useStore = create((set) => ({
         body: formData,
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to process ZIP file');
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error(`Server error (${response.status}). The repository might be too large or the server timed out.`);
+      }
+
+      if (!response.ok) throw new Error(data?.error || 'Failed to process ZIP file');
       
       set({ 
         treeData: data.tree, 
         edges: data.edges || [],
-        hasExperimentalLanguages: data.hasExperimentalLanguages || false,
         isLoading: false
       });
     } catch (err) {
       console.error(err);
-      set({ error: err.message, isLoading: false });
+      let errorMessage = err.message;
+      if (err.name === 'TypeError' && errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Network error or server timeout. The repository might be too large to parse synchronously.';
+      }
+      set({ error: errorMessage, isLoading: false });
     }
   }
 }));

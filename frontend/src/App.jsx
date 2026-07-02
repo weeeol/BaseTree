@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Network, AlertCircle, AlertTriangle, X } from 'lucide-react';
+import { Network, AlertCircle, X } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import FlowVisualization from './components/FlowVisualization';
 import CommandPalette from './components/CommandPalette';
@@ -11,15 +11,8 @@ function App() {
         treeData, 
         isLoading, 
         error, 
-        hasExperimentalLanguages,
         clearError
     } = useStore();
-
-    const [isWarningDismissed, setIsWarningDismissed] = React.useState(false);
-
-    useEffect(() => {
-        if (treeData) setIsWarningDismissed(false);
-    }, [treeData]);
 
     return (
         <div className="h-screen w-full flex bg-[#fafafa] text-black selection:bg-black selection:text-white font-sans overflow-hidden">
@@ -53,31 +46,6 @@ function App() {
 
                     {/* Command Palette Trigger & Modal */}
                     <CommandPalette />
-                </div>
-
-                <div className="absolute bottom-6 right-6 pointer-events-none z-20 flex flex-col gap-2 items-end">
-                    <AnimatePresence>
-                        {hasExperimentalLanguages && !error && !isWarningDismissed && (
-                            <motion.div 
-                                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                                className="inline-flex items-start gap-3 px-5 py-4 bg-yellow-300 border-3 border-black text-black text-sm brutalist-shadow pointer-events-auto max-w-md relative pr-12"
-                            >
-                                <AlertTriangle className="w-6 h-6 shrink-0 mt-0.5" strokeWidth={3} />
-                                <div>
-                                    <span className="font-extrabold uppercase tracking-widest block mb-1">Experimental Parsing</span>
-                                    <span className="font-medium leading-relaxed">Non-JS/TS languages detected. Their AST extraction is regex-based and may be inaccurate.</span>
-                                </div>
-                                <button 
-                                    onClick={() => setIsWarningDismissed(true)}
-                                    className="absolute right-3 top-3 p-1 hover:bg-black hover:text-yellow-300 border-2 border-transparent hover:border-black transition-colors"
-                                >
-                                    <X className="w-5 h-5" strokeWidth={3} />
-                                </button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </div>
 
                 <div className="flex-1 w-full h-full p-6 relative z-10">
